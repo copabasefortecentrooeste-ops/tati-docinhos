@@ -1,3 +1,7 @@
+/**
+ * Dados de seed — usados pelos stores como valor inicial e como fallback offline.
+ * NÃO importar diretamente nas páginas; use os stores (useProductsStore, etc.)
+ */
 import type { Category, Product, DeliveryNeighborhood, Coupon, BusinessHours, StoreConfig } from '@/types';
 
 import heroBrigadeiros from '@/assets/hero-brigadeiros.jpg';
@@ -114,15 +118,3 @@ export const businessHours: BusinessHours[] = [
   { id: '6', dayOfWeek: 6, openTime: '10:00', closeTime: '16:00', active: true },
   { id: '7', dayOfWeek: 0, openTime: '00:00', closeTime: '00:00', active: false },
 ];
-
-export const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  received: { label: 'Recebido', color: 'bg-blue-100 text-blue-800' },
-  analyzing: { label: 'Em análise', color: 'bg-yellow-100 text-yellow-800' },
-  production: { label: 'Em produção', color: 'bg-orange-100 text-orange-800' },
-  delivery: { label: 'Saiu para entrega', color: 'bg-purple-100 text-purple-800' },
-  delivered: { label: 'Entregue', color: 'bg-green-100 text-green-800' },
-  cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
-};
-
-export const formatPrice = (price: number) =>
-  price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

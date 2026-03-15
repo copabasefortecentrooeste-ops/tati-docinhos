@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Package, ChefHat, Truck, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
-import { ORDER_STATUS_LABELS, formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
+import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
 import type { OrderStatus } from '@/types';
 
 const statusSteps: { key: OrderStatus; icon: React.ElementType; label: string }[] = [

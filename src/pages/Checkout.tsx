@@ -6,7 +6,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useOrderStore } from '@/store/orderStore';
 import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
 import { useCouponsStore } from '@/store/couponsStore';
-import { formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
 import { toast } from '@/hooks/use-toast';
 import type { Order, Coupon } from '@/types';
 

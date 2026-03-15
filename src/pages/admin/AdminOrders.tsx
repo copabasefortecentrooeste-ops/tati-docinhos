@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useOrderStore } from '@/store/orderStore';
-import { ORDER_STATUS_LABELS, formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
+import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
 import type { OrderStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';

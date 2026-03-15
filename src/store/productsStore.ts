@@ -11,7 +11,7 @@ const prodFromDB = (r: Record<string, unknown>): Product => ({
   description: (r.description as string) ?? '',
   basePrice: r.base_price as number,
   image: (r.image as string) ?? '',
-  categoryId: r.category_id as string,
+  categoryId: (r.category_id as string) ?? '',
   minQuantity: (r.min_quantity as number) ?? 1,
   options: (r.options as Product['options']) ?? [],
   featured: (r.featured as boolean) ?? false,
@@ -40,16 +40,24 @@ const catFromDB = (r: Record<string, unknown>): Category => ({
 });
 
 const catToDB = (c: Category) => ({
-  id: c.id, name: c.name, slug: c.slug, image: c.image, description: c.description,
+  id: c.id, name: c.name, slug: c.slug, image: c.image ?? '', description: c.description ?? '',
 });
 
 // ── Store ──────────────────────────────────────────────────
 interface ProductsState {
   products: Product[];
   categories: Category[];
+
+  // Products
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+
+  // Categories
+  addCategory: (category: Category) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<{ ok: boolean; reason?: string }>;
+
   initFromDB: () => Promise<void>;
 }
 
@@ -59,32 +67,38 @@ export const useProductsStore = create<ProductsState>()(
       products: defaultProducts,
       categories: defaultCategories,
 
+      // ── Init ──────────────────────────────────────────────
       initFromDB: async () => {
         try {
           const [{ data: prods }, { data: cats }] = await Promise.all([
             supabase.from('products').select('*'),
             supabase.from('categories').select('*'),
           ]);
+
+          if (cats && cats.length > 0) {
+            set({ categories: cats.map(catFromDB) });
+          } else {
+            await supabase.from('categories').upsert(get().categories.map(catToDB));
+          }
+
           if (prods && prods.length > 0) {
             set({ products: prods.map(prodFromDB) });
           } else {
-            // Seed defaults
-            await supabase.from('categories').upsert(get().categories.map(catToDB));
             await supabase.from('products').upsert(get().products.map(prodToDB));
           }
-          if (cats && cats.length > 0) set({ categories: cats.map(catFromDB) });
-        } catch (e) {
+        } catch {
           console.warn('[products] offline, using local data');
         }
       },
 
+      // ── Product CRUD ──────────────────────────────────────
       addProduct: async (product) => {
         set((s) => ({ products: [...s.products, product] }));
         try { await supabase.from('products').insert(prodToDB(product)); } catch { /**/ }
       },
 
       updateProduct: async (id, updates) => {
-        set((s) => ({ products: s.products.map((p) => (p.id === id ? { ...p, ...updates } : p)) }));
+        set((s) => ({ products: s.products.map((p) => p.id === id ? { ...p, ...updates } : p) }));
         const updated = get().products.find((p) => p.id === id);
         if (updated) {
           try { await supabase.from('products').update(prodToDB(updated)).eq('id', id); } catch { /**/ }
@@ -94,6 +108,32 @@ export const useProductsStore = create<ProductsState>()(
       deleteProduct: async (id) => {
         set((s) => ({ products: s.products.filter((p) => p.id !== id) }));
         try { await supabase.from('products').delete().eq('id', id); } catch { /**/ }
+      },
+
+      // ── Category CRUD ─────────────────────────────────────
+      addCategory: async (category) => {
+        set((s) => ({ categories: [...s.categories, category] }));
+        try { await supabase.from('categories').insert(catToDB(category)); } catch { /**/ }
+      },
+
+      updateCategory: async (id, updates) => {
+        set((s) => ({
+          categories: s.categories.map((c) => c.id === id ? { ...c, ...updates } : c),
+        }));
+        const updated = get().categories.find((c) => c.id === id);
+        if (updated) {
+          try { await supabase.from('categories').update(catToDB(updated)).eq('id', id); } catch { /**/ }
+        }
+      },
+
+      deleteCategory: async (id) => {
+        const hasProducts = get().products.some((p) => p.categoryId === id);
+        if (hasProducts) {
+          return { ok: false, reason: 'Existem produtos vinculados a esta categoria. Remova ou mova os produtos primeiro.' };
+        }
+        set((s) => ({ categories: s.categories.filter((c) => c.id !== id) }));
+        try { await supabase.from('categories').delete().eq('id', id); } catch { /**/ }
+        return { ok: true };
       },
     }),
     { name: 'taty-products' }

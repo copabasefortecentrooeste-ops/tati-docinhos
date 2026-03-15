@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, Save, X } from 'lucide-react';
 import { useCouponsStore } from '@/store/couponsStore';
-import { formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
 import { toast } from '@/hooks/use-toast';
 import type { Coupon } from '@/types';
 

@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "Dev Server (Vite)",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 8080
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": ["/c", "npm", "run", "dev"],
+      "port": 8080,
+      "autoPort": true
     }
   ]
 }

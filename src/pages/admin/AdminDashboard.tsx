@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Clock } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
-import { ORDER_STATUS_LABELS, formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
+import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
 
 export default function AdminDashboard() {
   const orders = useOrderStore((s) => s.orders);

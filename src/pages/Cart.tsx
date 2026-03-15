@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trash2, Minus, Plus, ArrowRight, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
-import { formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
 
 export default function Cart() {
   const { items, removeItem, updateQuantity, getSubtotal } = useCartStore();

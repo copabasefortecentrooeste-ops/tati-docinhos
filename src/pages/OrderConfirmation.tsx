@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, Copy, ArrowRight } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
-import { formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
 import { toast } from '@/hooks/use-toast';
 
 export default function OrderConfirmation() {
