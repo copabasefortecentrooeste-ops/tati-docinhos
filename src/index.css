@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 20 20% 97%;
+    --foreground: 20 15% 15%;
+
+    --card: 20 25% 99%;
+    --card-foreground: 20 15% 15%;
+
+    --popover: 20 25% 99%;
+    --popover-foreground: 20 15% 15%;
+
+    --primary: 15 45% 55%;
+    --primary-foreground: 20 20% 97%;
+
+    --secondary: 30 40% 92%;
+    --secondary-foreground: 20 15% 25%;
+
+    --muted: 25 15% 93%;
+    --muted-foreground: 20 10% 50%;
+
+    --accent: 50 45% 88%;
+    --accent-foreground: 40 30% 25%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 20 15% 88%;
+    --input: 20 15% 88%;
+    --ring: 15 45% 55%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 20 20% 96%;
+    --sidebar-foreground: 20 10% 30%;
+    --sidebar-primary: 15 45% 55%;
+    --sidebar-primary-foreground: 20 20% 97%;
+    --sidebar-accent: 30 40% 92%;
+    --sidebar-accent-foreground: 20 15% 25%;
+    --sidebar-border: 20 15% 88%;
+    --sidebar-ring: 15 45% 55%;
+
+    /* Custom tokens */
+    --butter: 50 45% 88%;
+    --cream: 30 40% 92%;
+    --cocoa: 20 15% 15%;
+    --terracotta: 15 45% 55%;
+    --terracotta-light: 15 45% 65%;
+    --peach: 25 50% 95%;
+
+    --shadow-soft: 0 10px 30px -10px hsl(20 15% 15% / 0.04);
+    --shadow-card: 0 4px 20px -4px hsl(20 15% 15% / 0.06);
+    --shadow-elevated: 0 20px 40px -12px hsl(20 15% 15% / 0.1);
+
+    --radius-container: 1.5rem;
+    --radius-card: 1rem;
+    --radius-button: 0.75rem;
+
+    --ease-sweet: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .dark {
+    --background: 20 15% 8%;
+    --foreground: 20 20% 92%;
+    --card: 20 12% 12%;
+    --card-foreground: 20 20% 92%;
+    --popover: 20 12% 12%;
+    --popover-foreground: 20 20% 92%;
+    --primary: 15 45% 60%;
+    --primary-foreground: 20 15% 8%;
+    --secondary: 20 15% 18%;
+    --secondary-foreground: 20 20% 90%;
+    --muted: 20 10% 20%;
+    --muted-foreground: 20 10% 55%;
+    --accent: 50 30% 30%;
+    --accent-foreground: 50 45% 88%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 20 12% 22%;
+    --input: 20 12% 22%;
+    --ring: 15 45% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Fraunces', serif;
+    letter-spacing: -0.03em;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Fraunces', serif;
+    letter-spacing: -0.03em;
+  }
+
+  .font-body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  .label-caps {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
