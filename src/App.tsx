@@ -13,6 +13,8 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import OrderTracking from "./pages/OrderTracking";
+import CustomerLogin from "./pages/CustomerLogin";
+import CustomerProfile from "./pages/CustomerProfile";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -40,6 +42,8 @@ function AppInner() {
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/confirmacao/:code" element={<OrderConfirmation />} />
         <Route path="/acompanhar" element={<OrderTracking />} />
+        <Route path="/login" element={<CustomerLogin />} />
+        <Route path="/minha-conta" element={<CustomerProfile />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />

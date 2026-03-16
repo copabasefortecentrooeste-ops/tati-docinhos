@@ -1,15 +1,18 @@
 import { motion } from 'framer-motion';
 import { useOrderStore } from '@/store/orderStore';
-import { ORDER_STATUS_LABELS, formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
+import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
 import type { OrderStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 
 const statusFlow: OrderStatus[] = ['received', 'analyzing', 'production', 'delivery', 'delivered'];
 
 export default function AdminOrders() {
-  const { orders, updateStatus } = useOrderStore();
+  const { orders, updateStatus, initFromDB } = useOrderStore();
   const [filter, setFilter] = useState<string>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
 
@@ -17,13 +20,30 @@ export default function AdminOrders() {
     const idx = statusFlow.indexOf(current);
     if (idx < statusFlow.length - 1) {
       updateStatus(orderId, statusFlow[idx + 1]);
-      toast({ title: `Status atualizado para "${ORDER_STATUS_LABELS[statusFlow[idx + 1]].label}"` });
+      toast({ title: `Status: "${ORDER_STATUS_LABELS[statusFlow[idx + 1]].label}"` });
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await initFromDB();
+    setRefreshing(false);
+    toast({ title: 'Pedidos atualizados' });
   };
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-foreground">Pedidos</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-2xl font-bold text-foreground">Pedidos</h1>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+        >
+          <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+          Atualizar
+        </button>
+      </div>
 
       <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
         <button
@@ -57,20 +77,40 @@ export default function AdminOrders() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="tabular-nums text-sm font-bold text-foreground">{order.code}</span>
-                  <span className={`rounded-button px-2 py-0.5 text-[10px] font-medium ${ORDER_STATUS_LABELS[order.status]?.color}`}>
+                  <span
+                    className={`rounded-button px-2 py-0.5 text-[10px] font-medium ${ORDER_STATUS_LABELS[order.status]?.color}`}
+                  >
                     {ORDER_STATUS_LABELS[order.status]?.label}
                   </span>
+                  {order.outsideHours && (
+                    <span className="rounded-button bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                      ⏰ Fora do horário
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {order.customer.name} • {order.customer.phone}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {order.isPickup ? 'Retirada' : `${order.customer.neighborhood} — ${order.customer.address}`}
+                  {order.isPickup
+                    ? '🏪 Retirada'
+                    : [
+                        order.customer.neighborhood,
+                        order.city,
+                        order.state,
+                      ]
+                        .filter(Boolean)
+                        .join(' — ') || order.customer.address}
                 </p>
+                {order.customer.address && !order.isPickup && (
+                  <p className="text-xs text-muted-foreground">{order.customer.address}</p>
+                )}
               </div>
-              <span className="tabular-nums text-sm font-bold text-foreground">{formatPrice(order.total)}</span>
+              <span className="tabular-nums text-sm font-bold text-foreground">
+                {formatPrice(order.total)}
+              </span>
             </div>
 
             {/* Items */}
@@ -96,7 +136,10 @@ export default function AdminOrders() {
               {order.status !== 'cancelled' && order.status !== 'delivered' && (
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => { updateStatus(order.id, 'cancelled'); toast({ title: 'Pedido cancelado' }); }}
+                  onClick={() => {
+                    updateStatus(order.id, 'cancelled');
+                    toast({ title: 'Pedido cancelado' });
+                  }}
                   className="rounded-button border border-destructive px-3 py-1.5 text-xs font-medium text-destructive"
                 >
                   Cancelar
@@ -107,6 +150,7 @@ export default function AdminOrders() {
             <p className="mt-2 text-[10px] text-muted-foreground">
               {new Date(order.createdAt).toLocaleString('pt-BR')}
               {order.paymentMethod && ` • ${order.paymentMethod.toUpperCase()}`}
+              {order.cep && ` • CEP ${order.cep}`}
             </p>
           </motion.div>
         ))}

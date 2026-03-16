@@ -73,18 +73,42 @@ export interface Order {
     neighborhood?: string;
     reference?: string;
   };
+  customerId?: string;
   isPickup: boolean;
   deliveryFee: number;
   subtotal: number;
   discount: number;
   total: number;
+  city?: string;
+  state?: string;
+  cep?: string;
   paymentMethod: string;
   changeFor?: number;
   couponCode?: string;
   scheduledDate?: string;
   scheduledTime?: string;
+  /** True when the order was placed outside the store's scheduled hours */
+  outsideHours?: boolean;
   createdAt: string;
 }
+
+export type DeliveryMode = 'city_only' | 'free';
+
+export interface Customer {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  city: string;
+  state: string;
+  cep: string;
+  neighborhood: string;
+  street: string;
+  number: string;
+  complement?: string;
+}
+
+export type ManualStoreStatus = 'open' | 'closed' | 'paused' | null;
 
 export interface StoreConfig {
   name: string;
@@ -94,4 +118,16 @@ export interface StoreConfig {
   pixKey: string;
   deliveryPolicy: string;
   logo?: string;
+  deliveryMode: DeliveryMode;
+  defaultCity: string;
+  defaultState: string;
+  defaultCep: string;
+  /** Manual override: null = use business hours automatically */
+  manualStatus: ManualStoreStatus;
+  /** Block new orders when store is outside scheduled hours */
+  blockOrdersOutsideHours: boolean;
+  /** Message shown when store is closed / paused */
+  closedMessage: string;
+  /** Optional banner message shown when store is open */
+  operationalMessage: string;
 }

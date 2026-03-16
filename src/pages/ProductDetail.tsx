@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useProductsStore } from '@/store/productsStore';
-import { formatPrice } from '@/data/mockData';
+import { formatPrice } from '@/lib/format';
 import { useCartStore } from '@/store/cartStore';
 import { toast } from '@/hooks/use-toast';
 

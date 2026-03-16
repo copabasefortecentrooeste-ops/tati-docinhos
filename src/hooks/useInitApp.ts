@@ -5,6 +5,7 @@ import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
 import { useCouponsStore } from '@/store/couponsStore';
 import { useHoursStore } from '@/store/hoursStore';
 import { useOrderStore } from '@/store/orderStore';
+import { useCustomerStore } from '@/store/customerStore';
 
 /** Initialises all Supabase stores once on app mount. */
 export function useInitApp() {
@@ -14,8 +15,13 @@ export function useInitApp() {
   const initCoupons = useCouponsStore((s) => s.initFromDB);
   const initHours = useHoursStore((s) => s.initFromDB);
   const initOrders = useOrderStore((s) => s.initFromDB);
+  const initCustomer = useCustomerStore((s) => s.init);
 
   useEffect(() => {
+    // Init customer auth listener immediately (synchronous)
+    initCustomer();
+
+    // Init all data stores in parallel
     Promise.all([
       initConfig(),
       initProducts(),
