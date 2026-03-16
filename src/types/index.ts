@@ -87,6 +87,8 @@ export interface Order {
   couponCode?: string;
   scheduledDate?: string;
   scheduledTime?: string;
+  /** True when the order was placed outside the store's scheduled hours */
+  outsideHours?: boolean;
   createdAt: string;
 }
 
@@ -106,6 +108,8 @@ export interface Customer {
   complement?: string;
 }
 
+export type ManualStoreStatus = 'open' | 'closed' | 'paused' | null;
+
 export interface StoreConfig {
   name: string;
   phone: string;
@@ -118,4 +122,12 @@ export interface StoreConfig {
   defaultCity: string;
   defaultState: string;
   defaultCep: string;
+  /** Manual override: null = use business hours automatically */
+  manualStatus: ManualStoreStatus;
+  /** Block new orders when store is outside scheduled hours */
+  blockOrdersOutsideHours: boolean;
+  /** Message shown when store is closed / paused */
+  closedMessage: string;
+  /** Optional banner message shown when store is open */
+  operationalMessage: string;
 }

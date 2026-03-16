@@ -24,6 +24,10 @@ export const storeConfig: StoreConfig = {
   defaultCity: 'Pitangui',
   defaultState: 'MG',
   defaultCep: '35650-000',
+  manualStatus: null,
+  blockOrdersOutsideHours: false,
+  closedMessage: 'Estamos fechados no momento. Volte em breve! 🍬',
+  operationalMessage: '',
 };
 
 export const categories: Category[] = [

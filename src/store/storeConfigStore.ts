@@ -16,6 +16,10 @@ const fromDB = (r: Record<string, unknown>): StoreConfig => ({
   defaultCity: (r.default_city as string) || 'Pitangui',
   defaultState: (r.default_state as string) || 'MG',
   defaultCep: (r.default_cep as string) || '35650-000',
+  manualStatus: (r.manual_status as StoreConfig['manualStatus']) ?? null,
+  blockOrdersOutsideHours: (r.block_orders_outside_hours as boolean) ?? false,
+  closedMessage: (r.closed_message as string) || 'Estamos fechados no momento.',
+  operationalMessage: (r.operational_message as string) || '',
 });
 
 const toDB = (c: StoreConfig) => ({
@@ -31,6 +35,10 @@ const toDB = (c: StoreConfig) => ({
   default_city: c.defaultCity ?? 'Pitangui',
   default_state: c.defaultState ?? 'MG',
   default_cep: c.defaultCep ?? '35650-000',
+  manual_status: c.manualStatus ?? null,
+  block_orders_outside_hours: c.blockOrdersOutsideHours ?? false,
+  closed_message: c.closedMessage ?? 'Estamos fechados no momento.',
+  operational_message: c.operationalMessage ?? '',
 });
 
 interface StoreConfigState {

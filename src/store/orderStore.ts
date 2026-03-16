@@ -24,6 +24,7 @@ const fromDB = (r: Record<string, unknown>): Order => ({
   couponCode: r.coupon_code as string | undefined,
   scheduledDate: r.scheduled_date as string | undefined,
   scheduledTime: r.scheduled_time as string | undefined,
+  outsideHours: (r.outside_hours as boolean) ?? false,
   createdAt: r.created_at as string,
 });
 
@@ -47,6 +48,7 @@ const toDB = (o: Order) => ({
   coupon_code: o.couponCode ?? null,
   scheduled_date: o.scheduledDate ?? null,
   scheduled_time: o.scheduledTime ?? null,
+  outside_hours: o.outsideHours ?? false,
   created_at: o.createdAt,
 });
 

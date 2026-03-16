@@ -1,13 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Truck, Store, LogIn } from 'lucide-react';
+import { ArrowLeft, Truck, Store, LogIn, AlertTriangle, Clock } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useOrderStore } from '@/store/orderStore';
 import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
 import { useCouponsStore } from '@/store/couponsStore';
 import { useCustomerStore } from '@/store/customerStore';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
+import { useHoursStore } from '@/store/hoursStore';
+import { getStoreStatus } from '@/lib/storeStatus';
 import { formatPrice } from '@/lib/format';
 import { toast } from '@/hooks/use-toast';
 import type { Order, Coupon } from '@/types';
@@ -20,6 +22,8 @@ export default function Checkout() {
   const { coupons } = useCouponsStore();
   const { customer, session } = useCustomerStore();
   const { config } = useStoreConfigStore();
+  const { hours } = useHoursStore();
+  const storeStatus = getStoreStatus(config, hours);
 
   const deliveryMode = config.deliveryMode ?? 'city_only';
   const defaultCity = config.defaultCity ?? 'Pitangui';
@@ -92,6 +96,21 @@ export default function Checkout() {
   const handleSubmit = () => {
     if (!canSubmit) return;
 
+    // Store status validation
+    if (!storeStatus.canOrder) {
+      toast({
+        title:
+          storeStatus.type === 'closed'
+            ? 'Loja fechada'
+            : storeStatus.type === 'paused'
+            ? 'Pedidos pausados'
+            : 'Fora do horário de funcionamento',
+        description: storeStatus.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // City lock validation
     if (!isPickup && deliveryMode === 'city_only') {
       if (city.toLowerCase().trim() !== defaultCity.toLowerCase().trim()) {
@@ -131,6 +150,7 @@ export default function Checkout() {
       couponCode: couponApplied?.code,
       scheduledDate: scheduledDate || undefined,
       scheduledTime: scheduledTime || undefined,
+      outsideHours: storeStatus.isOutsideHours,
       createdAt: new Date().toISOString(),
     };
     addOrder(order);
@@ -185,6 +205,25 @@ export default function Checkout() {
           <ArrowLeft size={16} /> Voltar
         </button>
         <h1 className="font-display text-3xl font-bold text-foreground">Finalizar Pedido</h1>
+
+        {/* Store status warning */}
+        {!storeStatus.canOrder && (
+          <div className="mt-4 flex items-start gap-3 rounded-card border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">
+                {storeStatus.type === 'closed' ? '🔴 Loja fechada' : storeStatus.type === 'paused' ? '⏸ Pedidos pausados' : '⏰ Fora do horário'}
+              </p>
+              <p className="mt-0.5 text-xs opacity-90">{storeStatus.message}</p>
+            </div>
+          </div>
+        )}
+        {storeStatus.canOrder && storeStatus.isOutsideHours && (
+          <div className="mt-4 flex items-start gap-3 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <Clock size={16} className="mt-0.5 shrink-0" />
+            <p>⏰ Você está pedindo fora do horário normal. O pedido será processado no próximo horário disponível.</p>
+          </div>
+        )}
 
         {/* Identification */}
         <section className="mt-6">

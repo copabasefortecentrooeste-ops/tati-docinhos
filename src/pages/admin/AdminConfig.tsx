@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Phone, Instagram, MapPin, Key, FileText, Upload, Save, Store, Truck } from 'lucide-react';
+import { Phone, Instagram, MapPin, Key, FileText, Upload, Save, Store, Truck, ShieldAlert, MessageSquare } from 'lucide-react';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { compressImage } from '@/lib/imageUtils';
 import { toast } from '@/hooks/use-toast';
@@ -193,6 +193,68 @@ export default function AdminConfig() {
             <strong>{form.defaultCity || 'cidade não definida'}/{form.defaultState || 'UF'}</strong>.
           </div>
         )}
+      </div>
+
+      {/* Operational Settings */}
+      <div className="mt-8">
+        <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-foreground">
+          <ShieldAlert size={18} /> Configurações Operacionais
+        </h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Mensagens exibidas aos clientes e regra de bloqueio fora do horário.
+        </p>
+
+        {/* Block orders outside hours */}
+        <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Bloquear pedidos fora do horário</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Se ativado, clientes não poderão finalizar pedidos fora do horário de funcionamento.
+              </p>
+            </div>
+            <button
+              onClick={() => setForm((f) => ({ ...f, blockOrdersOutsideHours: !f.blockOrdersOutsideHours }))}
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                form.blockOrdersOutsideHours ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  form.blockOrdersOutsideHours ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Closed message */}
+        <div className="mt-3 rounded-card border border-border bg-card p-4 shadow-soft">
+          <label className="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+            <MessageSquare size={13} /> Mensagem quando fechado / fora do horário
+          </label>
+          <input
+            type="text"
+            placeholder="Estamos fechados no momento. Volte em breve!"
+            value={form.closedMessage ?? ''}
+            onChange={(e) => setForm((f) => ({ ...f, closedMessage: e.target.value }))}
+            className={inputCls}
+          />
+        </div>
+
+        {/* Operational message (open banner) */}
+        <div className="mt-3 rounded-card border border-border bg-card p-4 shadow-soft">
+          <label className="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+            <MessageSquare size={13} /> Banner informativo (exibido quando aberto, opcional)
+          </label>
+          <input
+            type="text"
+            placeholder="Ex: Pedidos até 17h entregues hoje!"
+            value={form.operationalMessage ?? ''}
+            onChange={(e) => setForm((f) => ({ ...f, operationalMessage: e.target.value }))}
+            className={inputCls}
+          />
+        </div>
       </div>
 
       <button

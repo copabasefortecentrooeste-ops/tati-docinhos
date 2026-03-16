@@ -77,13 +77,18 @@ export default function AdminOrders() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="tabular-nums text-sm font-bold text-foreground">{order.code}</span>
                   <span
                     className={`rounded-button px-2 py-0.5 text-[10px] font-medium ${ORDER_STATUS_LABELS[order.status]?.color}`}
                   >
                     {ORDER_STATUS_LABELS[order.status]?.label}
                   </span>
+                  {order.outsideHours && (
+                    <span className="rounded-button bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                      ⏰ Fora do horário
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {order.customer.name} • {order.customer.phone}

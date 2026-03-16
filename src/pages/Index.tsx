@@ -3,14 +3,27 @@ import { motion } from 'framer-motion';
 import { ArrowRight, MapPin, Clock } from 'lucide-react';
 import { useProductsStore } from '@/store/productsStore';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
+import { useHoursStore } from '@/store/hoursStore';
+import { getStoreStatus, getTodayHours } from '@/lib/storeStatus';
 import ProductCard from '@/components/product/ProductCard';
 import heroBrigadeiros from '@/assets/hero-brigadeiros.jpg';
 
 const Index = () => {
   const { products, categories } = useProductsStore();
   const { config: storeConfig } = useStoreConfigStore();
+  const { hours } = useHoursStore();
   const featuredProducts = products.filter((p) => p.featured);
   const bestSellers = products.filter((p) => p.bestSeller);
+
+  const status = getStoreStatus(storeConfig, hours);
+  const todayHours = getTodayHours(hours);
+
+  const statusBadgeStyle: Record<string, string> = {
+    open: 'bg-green-100 text-green-700',
+    closed: 'bg-red-100 text-red-700',
+    paused: 'bg-amber-100 text-amber-700',
+    outside_hours: 'bg-orange-100 text-orange-700',
+  };
 
   return (
     <div className="min-h-screen">
@@ -29,6 +42,26 @@ const Index = () => {
             <p className="mt-4 max-w-md text-base text-muted-foreground text-pretty">
               Brigadeiros gourmet, bolos decorados e doces finos feitos à mão com ingredientes premium. Peça online e receba com carinho.
             </p>
+
+            {/* Operational message banner */}
+            {status.type === 'open' && storeConfig.operationalMessage && (
+              <div className="mt-4 rounded-card border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-800">
+                📢 {storeConfig.operationalMessage}
+              </div>
+            )}
+            {status.type !== 'open' && (
+              <div className={`mt-4 rounded-card border px-4 py-2.5 text-sm font-medium ${
+                status.type === 'outside_hours' ? 'border-orange-200 bg-orange-50 text-orange-800' :
+                status.type === 'paused' ? 'border-amber-200 bg-amber-50 text-amber-800' :
+                'border-red-200 bg-red-50 text-red-800'
+              }`}>
+                {status.type === 'closed' && '🔴 '}
+                {status.type === 'paused' && '⏸ '}
+                {status.type === 'outside_hours' && '⏰ '}
+                {status.message}
+              </div>
+            )}
+
             <div className="mt-6 flex flex-wrap gap-3">
               <Link to="/catalogo">
                 <motion.button
@@ -47,12 +80,21 @@ const Index = () => {
                 </motion.button>
               </Link>
             </div>
-            <div className="mt-8 flex flex-wrap gap-5 text-xs text-muted-foreground">
+            <div className="mt-8 flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <MapPin size={13} /> {storeConfig.address}
               </span>
               <span className="flex items-center gap-1.5">
-                <Clock size={13} /> Seg–Sex 9h–18h
+                <Clock size={13} />
+                {todayHours?.active
+                  ? `Hoje ${todayHours.openTime}–${todayHours.closeTime}`
+                  : 'Fechado hoje'}
+              </span>
+              {/* Live status badge */}
+              <span
+                className={`rounded-button px-2.5 py-0.5 text-[11px] font-semibold ${statusBadgeStyle[status.type]}`}
+              >
+                {status.label}
               </span>
             </div>
           </motion.div>
