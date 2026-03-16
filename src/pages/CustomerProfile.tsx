@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, LogOut, User, Package } from 'lucide-react';
@@ -16,6 +16,38 @@ export default function CustomerProfile() {
   const deliveryMode = config.deliveryMode ?? 'city_only';
   const { orders } = useOrderStore();
 
+  // All hooks must be declared before any early returns (Rules of Hooks)
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    fullName: customer?.fullName ?? '',
+    phone: customer?.phone ?? '',
+    city: customer?.city ?? '',
+    state: customer?.state ?? '',
+    cep: customer?.cep ?? '',
+    neighborhood: customer?.neighborhood ?? '',
+    street: customer?.street ?? '',
+    number: customer?.number ?? '',
+    complement: customer?.complement || '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  // Sync form when customer loads asynchronously
+  useEffect(() => {
+    if (customer) {
+      setForm({
+        fullName: customer.fullName,
+        phone: customer.phone,
+        city: customer.city,
+        state: customer.state,
+        cep: customer.cep,
+        neighborhood: customer.neighborhood,
+        street: customer.street,
+        number: customer.number,
+        complement: customer.complement || '',
+      });
+    }
+  }, [customer]);
+
   if (!session || !customer) {
     return (
       <div className="min-h-screen py-16 text-center">
@@ -28,20 +60,6 @@ export default function CustomerProfile() {
   }
 
   const myOrders = orders.filter((o) => o.customerId === customer.id);
-
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    fullName: customer.fullName,
-    phone: customer.phone,
-    city: customer.city,
-    state: customer.state,
-    cep: customer.cep,
-    neighborhood: customer.neighborhood,
-    street: customer.street,
-    number: customer.number,
-    complement: customer.complement || '',
-  });
-  const [saving, setSaving] = useState(false);
 
   const inputCls =
     'w-full rounded-button border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';

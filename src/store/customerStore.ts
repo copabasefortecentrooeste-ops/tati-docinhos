@@ -63,23 +63,26 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
   loading: true,
 
   init: () => {
-    // Check current session on load
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      set({ session, loading: false });
-      if (session?.user) {
-        const customer = await loadProfile(session.user.id);
-        if (customer) set({ customer });
-      }
-    });
+    // onAuthStateChange fires immediately with INITIAL_SESSION/SIGNED_IN on page load,
+    // so we don't need a separate getSession() call. Just set loading:false as fallback.
+    setTimeout(() => {
+      // If onAuthStateChange hasn't fired within 3s, clear loading state
+      const { loading } = get();
+      if (loading) set({ loading: false });
+    }, 3000);
 
     // Listen for auth changes (login / logout)
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      set({ session });
+    // NOTE: loadProfile is called via setTimeout to avoid Supabase v2 internal auth-lock deadlock
+    supabase.auth.onAuthStateChange((_event, session) => {
+      set({ session, loading: false });
       if (!session) {
         set({ customer: null });
       } else if (session.user) {
-        const customer = await loadProfile(session.user.id);
-        if (customer) set({ customer });
+        const uid = session.user.id;
+        setTimeout(async () => {
+          const customer = await loadProfile(uid);
+          if (customer) set({ customer });
+        }, 0);
       }
     });
   },
@@ -91,7 +94,21 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
       if (!data.user) return { error: 'Erro ao criar conta. Tente novamente.' };
 
       const customer: Customer = { id: data.user.id, email, ...profile };
-      const { error: profileError } = await supabase.from('customers').insert(toDB(customer));
+
+      // Use SECURITY DEFINER RPC to bypass RLS (works even without email confirmation session)
+      const { error: profileError } = await supabase.rpc('create_customer_profile', {
+        p_id: customer.id,
+        p_full_name: customer.fullName,
+        p_phone: customer.phone,
+        p_email: customer.email,
+        p_city: customer.city,
+        p_state: customer.state,
+        p_cep: customer.cep,
+        p_neighborhood: customer.neighborhood,
+        p_street: customer.street,
+        p_number: customer.number,
+        p_complement: customer.complement ?? null,
+      });
       if (profileError) return { error: 'Conta criada, mas erro ao salvar perfil: ' + profileError.message };
 
       set({ customer, session: data.session });
