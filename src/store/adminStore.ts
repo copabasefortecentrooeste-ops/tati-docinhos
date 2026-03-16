@@ -1,27 +1,28 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 interface AdminState {
   isAuthenticated: boolean;
-  login: (password: string) => boolean;
-  logout: () => void;
+  isLoading: boolean;
+  session: Session | null;
+  setSession: (session: Session | null) => void;
+  setLoading: (loading: boolean) => void;
+  logout: () => Promise<void>;
 }
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD as string ?? 'taty2024';
+export const useAdminStore = create<AdminState>((set) => ({
+  isAuthenticated: false,
+  isLoading: true,
+  session: null,
 
-export const useAdminStore = create<AdminState>()(
-  persist(
-    (set) => ({
-      isAuthenticated: false,
-      login: (password: string) => {
-        if (password === ADMIN_PASSWORD) {
-          set({ isAuthenticated: true });
-          return true;
-        }
-        return false;
-      },
-      logout: () => set({ isAuthenticated: false }),
-    }),
-    { name: 'taty-admin' }
-  )
-);
+  setSession: (session) =>
+    set({ session, isAuthenticated: !!session, isLoading: false }),
+
+  setLoading: (loading) => set({ isLoading: loading }),
+
+  logout: async () => {
+    await supabase.auth.signOut();
+    set({ session: null, isAuthenticated: false });
+  },
+}));

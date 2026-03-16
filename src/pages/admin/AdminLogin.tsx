@@ -2,21 +2,35 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
-import { useAdminStore } from '@/store/adminStore';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminLogin() {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const login = useAdminStore((s) => s.login);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(password)) {
-      navigate('/admin');
-    } else {
-      toast({ title: 'Senha incorreta', variant: 'destructive' });
+    if (!email.trim() || !password.trim()) return;
+
+    setIsSubmitting(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setIsSubmitting(false);
+
+    if (error) {
+      toast({
+        title: 'Credenciais inválidas',
+        description: 'Verifique o e-mail e a senha e tente novamente.',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    // Navigation is triggered by AdminLayout's onAuthStateChange listener.
+    // But we also navigate here as a fallback for direct login.
+    navigate('/admin');
   };
 
   return (
@@ -35,21 +49,32 @@ export default function AdminLogin() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+            required
+            className="w-full rounded-button border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <input
             type="password"
             placeholder="Senha de acesso"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
             className="w-full rounded-button border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <motion.button
             whileTap={{ scale: 0.95 }}
             type="submit"
-            className="w-full rounded-button bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            disabled={isSubmitting}
+            className="w-full rounded-button bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            Entrar
+            {isSubmitting ? 'Entrando...' : 'Entrar'}
           </motion.button>
         </form>
-        <p className="mt-4 text-center text-xs text-muted-foreground">Senha demo: taty2024</p>
       </motion.div>
     </div>
   );
