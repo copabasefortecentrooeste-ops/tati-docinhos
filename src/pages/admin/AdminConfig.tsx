@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
-import { Phone, Instagram, MapPin, Key, FileText, Upload, Save, Store } from 'lucide-react';
+import { Phone, Instagram, MapPin, Key, FileText, Upload, Save, Store, Truck } from 'lucide-react';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { compressImage } from '@/lib/imageUtils';
 import { toast } from '@/hooks/use-toast';
+import type { DeliveryMode } from '@/types';
 
 export default function AdminConfig() {
   const { config, updateConfig } = useStoreConfigStore();
@@ -32,7 +33,7 @@ export default function AdminConfig() {
       return;
     }
     setSaving(true);
-    updateConfig(form);
+    await updateConfig(form);
     await new Promise((r) => setTimeout(r, 250));
     setSaving(false);
     toast({ title: 'Configurações salvas!' });
@@ -44,7 +45,7 @@ export default function AdminConfig() {
   return (
     <div>
       <h1 className="font-display text-2xl font-bold text-foreground">Configurações</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Dados da loja</p>
+      <p className="mt-1 text-sm text-muted-foreground">Dados da loja e regras de entrega</p>
 
       {/* Logo */}
       <div className="mt-6 rounded-card border border-border bg-card p-4 shadow-soft">
@@ -53,7 +54,7 @@ export default function AdminConfig() {
         </p>
         <div className="flex items-center gap-4">
           {logoPreview ? (
-            <img src={logoPreview} alt="Logo" className="h-16 w-16 rounded-lg object-cover border border-border" />
+            <img src={logoPreview} alt="Logo" className="h-16 w-16 rounded-lg border border-border object-cover" />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-border text-muted-foreground">
               <Store size={22} />
@@ -62,7 +63,7 @@ export default function AdminConfig() {
           <div className="flex flex-col gap-2">
             <button
               onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-2 rounded-button border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              className="flex items-center gap-2 rounded-button border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
               <Upload size={14} /> Enviar imagem
             </button>
@@ -81,7 +82,7 @@ export default function AdminConfig() {
         </div>
       </div>
 
-      {/* Fields */}
+      {/* Store info fields */}
       <div className="mt-4 space-y-4">
         {(
           [
@@ -111,6 +112,87 @@ export default function AdminConfig() {
             className={`${inputCls} resize-none`}
           />
         </div>
+      </div>
+
+      {/* Delivery Mode */}
+      <div className="mt-8">
+        <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-foreground">
+          <Truck size={18} /> Configuração de Entrega
+        </h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Define se a loja aceita pedidos somente na cidade padrão ou de qualquer local.
+        </p>
+
+        {/* Mode toggle */}
+        <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+          <p className="mb-3 text-xs font-medium text-muted-foreground">Modo de entrega</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(
+              [
+                { value: 'city_only', label: '📍 Somente cidade padrão', desc: 'Bloqueia pedidos fora da cidade configurada' },
+                { value: 'free', label: '🌎 Entrega livre', desc: 'Aceita pedidos de qualquer cidade' },
+              ] as { value: DeliveryMode; label: string; desc: string }[]
+            ).map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => setForm((f) => ({ ...f, deliveryMode: mode.value }))}
+                className={`rounded-card border p-4 text-left transition-colors ${
+                  form.deliveryMode === mode.value
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border bg-background hover:bg-muted/40'
+                }`}
+              >
+                <p className="text-sm font-medium text-foreground">{mode.label}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{mode.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Default city fields */}
+        <div className="mt-4 space-y-3">
+          <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+            <label className="mb-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+              <MapPin size={13} /> Cidade padrão
+            </label>
+            <input
+              type="text"
+              placeholder="Pitangui"
+              value={form.defaultCity ?? ''}
+              onChange={(e) => setForm((f) => ({ ...f, defaultCity: e.target.value }))}
+              className={inputCls}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+              <label className="mb-1.5 text-xs text-muted-foreground">Estado</label>
+              <input
+                type="text"
+                placeholder="MG"
+                value={form.defaultState ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, defaultState: e.target.value }))}
+                className={inputCls}
+              />
+            </div>
+            <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+              <label className="mb-1.5 text-xs text-muted-foreground">CEP padrão</label>
+              <input
+                type="text"
+                placeholder="35650-000"
+                value={form.defaultCep ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, defaultCep: e.target.value }))}
+                className={inputCls}
+              />
+            </div>
+          </div>
+        </div>
+
+        {form.deliveryMode === 'city_only' && (
+          <div className="mt-3 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            ⚠️ Modo ativo: clientes só conseguirão finalizar pedidos com entrega em{' '}
+            <strong>{form.defaultCity || 'cidade não definida'}/{form.defaultState || 'UF'}</strong>.
+          </div>
+        )}
       </div>
 
       <button

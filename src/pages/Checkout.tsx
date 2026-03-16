@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Truck, Store } from 'lucide-react';
+import { ArrowLeft, Truck, Store, LogIn } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useOrderStore } from '@/store/orderStore';
 import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
 import { useCouponsStore } from '@/store/couponsStore';
+import { useCustomerStore } from '@/store/customerStore';
+import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { formatPrice } from '@/lib/format';
 import { toast } from '@/hooks/use-toast';
 import type { Order, Coupon } from '@/types';
@@ -16,6 +18,13 @@ export default function Checkout() {
   const addOrder = useOrderStore((s) => s.addOrder);
   const { neighborhoods } = useNeighborhoodsStore();
   const { coupons } = useCouponsStore();
+  const { customer, session } = useCustomerStore();
+  const { config } = useStoreConfigStore();
+
+  const deliveryMode = config.deliveryMode ?? 'city_only';
+  const defaultCity = config.defaultCity ?? 'Pitangui';
+  const defaultState = config.defaultState ?? 'MG';
+  const defaultCep = config.defaultCep ?? '35650-000';
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -23,12 +32,36 @@ export default function Checkout() {
   const [neighborhoodId, setNeighborhoodId] = useState('');
   const [address, setAddress] = useState('');
   const [reference, setReference] = useState('');
+  const [city, setCity] = useState(deliveryMode === 'city_only' ? defaultCity : '');
+  const [state, setState] = useState(deliveryMode === 'city_only' ? defaultState : '');
+  const [cep, setCep] = useState(deliveryMode === 'city_only' ? defaultCep : '');
   const [paymentMethod, setPaymentMethod] = useState('pix');
   const [changeFor, setChangeFor] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState<Coupon | null>(null);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+
+  // Pre-fill from customer profile when it loads
+  useEffect(() => {
+    if (customer) {
+      setName(customer.fullName);
+      setPhone(customer.phone);
+      setCity(customer.city);
+      setState(customer.state);
+      setCep(customer.cep);
+      if (customer.street) {
+        setAddress(
+          `${customer.street}, ${customer.number}${customer.complement ? ` — ${customer.complement}` : ''}`
+        );
+      }
+      // Auto-select neighborhood if customer neighborhood matches
+      const match = neighborhoods.find(
+        (n) => n.active && n.name.toLowerCase() === customer.neighborhood.toLowerCase()
+      );
+      if (match) setNeighborhoodId(match.id);
+    }
+  }, [customer, neighborhoods]);
 
   const activeNeighborhoods = neighborhoods.filter((n) => n.active);
   const selectedNeighborhood = activeNeighborhoods.find((n) => n.id === neighborhoodId);
@@ -58,6 +91,19 @@ export default function Checkout() {
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+
+    // City lock validation
+    if (!isPickup && deliveryMode === 'city_only') {
+      if (city.toLowerCase().trim() !== defaultCity.toLowerCase().trim()) {
+        toast({
+          title: `Entrega somente em ${defaultCity}/${defaultState}`,
+          description: 'Seu endereço está fora da área de entrega configurada.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     const code = `TD${Date.now().toString(36).toUpperCase().slice(-6)}`;
     const order: Order = {
       id: crypto.randomUUID(),
@@ -71,11 +117,15 @@ export default function Checkout() {
         neighborhood: selectedNeighborhood?.name,
         reference: reference.trim() || undefined,
       },
+      customerId: customer?.id,
       isPickup,
       deliveryFee,
       subtotal,
       discount,
       total,
+      city: isPickup ? undefined : city.trim() || undefined,
+      state: isPickup ? undefined : state.trim() || undefined,
+      cep: isPickup ? undefined : cep.trim() || undefined,
       paymentMethod,
       changeFor: paymentMethod === 'dinheiro' && changeFor ? Number(changeFor) : undefined,
       couponCode: couponApplied?.code,
@@ -93,12 +143,45 @@ export default function Checkout() {
     return null;
   }
 
-  const inputClasses = "w-full rounded-button border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring";
+  // ── Auth gate ──────────────────────────────────────────────
+  if (!session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center py-10">
+        <div className="container max-w-md text-center">
+          <div className="rounded-card border border-border bg-card p-8 shadow-soft">
+            <LogIn size={40} className="mx-auto mb-4 text-primary" />
+            <h2 className="font-display text-2xl font-bold text-foreground">Login necessário</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Faça login ou crie uma conta para finalizar seu pedido.
+            </p>
+            <Link
+              to="/login?returnTo=/checkout"
+              className="mt-5 block w-full rounded-button bg-primary py-3 text-center text-sm font-semibold text-primary-foreground"
+            >
+              Entrar / Criar Conta
+            </Link>
+            <button
+              onClick={() => navigate('/carrinho')}
+              className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground"
+            >
+              Voltar ao carrinho
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const inputClasses =
+    'w-full rounded-button border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';
 
   return (
     <div className="min-h-screen py-6 pb-24">
       <div className="container max-w-2xl">
-        <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft size={16} /> Voltar
         </button>
         <h1 className="font-display text-3xl font-bold text-foreground">Finalizar Pedido</h1>
@@ -107,8 +190,20 @@ export default function Checkout() {
         <section className="mt-6">
           <h2 className="label-caps text-muted-foreground">Seus dados</h2>
           <div className="mt-3 space-y-3">
-            <input type="text" placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} className={inputClasses} />
-            <input type="tel" placeholder="WhatsApp (11) 99999-9999" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClasses} />
+            <input
+              type="text"
+              placeholder="Seu nome"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={inputClasses}
+            />
+            <input
+              type="tel"
+              placeholder="WhatsApp (11) 99999-9999"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className={inputClasses}
+            />
           </div>
         </section>
 
@@ -120,7 +215,9 @@ export default function Checkout() {
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsPickup(false)}
               className={`flex items-center justify-center gap-2 rounded-card border p-4 text-sm font-medium transition-colors ${
-                !isPickup ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-card text-muted-foreground'
+                !isPickup
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-card text-muted-foreground'
               }`}
             >
               <Truck size={18} /> Delivery
@@ -129,7 +226,9 @@ export default function Checkout() {
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsPickup(true)}
               className={`flex items-center justify-center gap-2 rounded-card border p-4 text-sm font-medium transition-colors ${
-                isPickup ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-card text-muted-foreground'
+                isPickup
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-card text-muted-foreground'
               }`}
             >
               <Store size={18} /> Retirada
@@ -138,6 +237,37 @@ export default function Checkout() {
 
           {!isPickup && (
             <div className="mt-4 space-y-3">
+              {deliveryMode === 'city_only' && (
+                <div className="rounded-card border border-border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
+                  📍 Entrega somente em <strong>{defaultCity}/{defaultState}</strong>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="Cidade"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  readOnly={deliveryMode === 'city_only'}
+                  className={`${inputClasses} ${deliveryMode === 'city_only' ? 'cursor-not-allowed opacity-60' : ''}`}
+                />
+                <input
+                  type="text"
+                  placeholder="Estado"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  readOnly={deliveryMode === 'city_only'}
+                  className={`${inputClasses} ${deliveryMode === 'city_only' ? 'cursor-not-allowed opacity-60' : ''}`}
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="CEP"
+                value={cep}
+                onChange={(e) => setCep(e.target.value)}
+                readOnly={deliveryMode === 'city_only'}
+                className={`${inputClasses} ${deliveryMode === 'city_only' ? 'cursor-not-allowed opacity-60' : ''}`}
+              />
               <select
                 value={neighborhoodId}
                 onChange={(e) => setNeighborhoodId(e.target.value)}
@@ -145,11 +275,25 @@ export default function Checkout() {
               >
                 <option value="">Selecione o bairro</option>
                 {activeNeighborhoods.map((n) => (
-                  <option key={n.id} value={n.id}>{n.name} — {formatPrice(n.fee)}</option>
+                  <option key={n.id} value={n.id}>
+                    {n.name} — {formatPrice(n.fee)}
+                  </option>
                 ))}
               </select>
-              <input type="text" placeholder="Endereço completo" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClasses} />
-              <input type="text" placeholder="Referência (opcional)" value={reference} onChange={(e) => setReference(e.target.value)} className={inputClasses} />
+              <input
+                type="text"
+                placeholder="Endereço completo (Rua, número)"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className={inputClasses}
+              />
+              <input
+                type="text"
+                placeholder="Referência (opcional)"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                className={inputClasses}
+              />
             </div>
           )}
         </section>
@@ -158,8 +302,18 @@ export default function Checkout() {
         <section className="mt-6">
           <h2 className="label-caps text-muted-foreground">Agendar (opcional)</h2>
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className={inputClasses} />
-            <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className={inputClasses} />
+            <input
+              type="date"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              className={inputClasses}
+            />
+            <input
+              type="time"
+              value={scheduledTime}
+              onChange={(e) => setScheduledTime(e.target.value)}
+              className={inputClasses}
+            />
           </div>
         </section>
 
@@ -176,7 +330,9 @@ export default function Checkout() {
                 key={m.id}
                 onClick={() => setPaymentMethod(m.id)}
                 className={`rounded-button border px-4 py-2 text-sm transition-colors ${
-                  paymentMethod === m.id ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-card text-muted-foreground'
+                  paymentMethod === m.id
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border bg-card text-muted-foreground'
                 }`}
               >
                 {m.label}
@@ -215,7 +371,10 @@ export default function Checkout() {
           </div>
           {couponApplied && (
             <p className="mt-2 text-xs text-primary">
-              ✓ {couponApplied.code} — {couponApplied.type === 'percentage' ? `${couponApplied.value}% off` : `${formatPrice(couponApplied.value)} off`}
+              ✓ {couponApplied.code} —{' '}
+              {couponApplied.type === 'percentage'
+                ? `${couponApplied.value}% off`
+                : `${formatPrice(couponApplied.value)} off`}
             </p>
           )}
         </section>
@@ -224,14 +383,24 @@ export default function Checkout() {
         <section className="mt-8 rounded-container bg-secondary p-5">
           <h2 className="label-caps text-muted-foreground">Resumo</h2>
           <div className="mt-3 space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatPrice(subtotal)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span className="tabular-nums">{isPickup ? 'Grátis' : formatPrice(deliveryFee)}</span></div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="tabular-nums">{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Entrega</span>
+              <span className="tabular-nums">{isPickup ? 'Grátis' : formatPrice(deliveryFee)}</span>
+            </div>
             {discount > 0 && (
-              <div className="flex justify-between text-primary"><span>Desconto</span><span className="tabular-nums">-{formatPrice(discount)}</span></div>
+              <div className="flex justify-between text-primary">
+                <span>Desconto</span>
+                <span className="tabular-nums">-{formatPrice(discount)}</span>
+              </div>
             )}
             <div className="border-t border-border pt-2" />
             <div className="flex justify-between text-lg font-bold">
-              <span>Total</span><span className="tabular-nums">{formatPrice(total)}</span>
+              <span>Total</span>
+              <span className="tabular-nums">{formatPrice(total)}</span>
             </div>
           </div>
 

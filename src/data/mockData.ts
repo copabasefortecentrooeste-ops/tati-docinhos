@@ -20,6 +20,10 @@ export const storeConfig: StoreConfig = {
   address: 'Rua das Flores, 123 - Centro',
   pixKey: 'pix@tatydocinhos.com.br',
   deliveryPolicy: 'Entregamos em até 60 minutos para o centro. Pedidos acima de R$ 100 têm frete grátis!',
+  deliveryMode: 'city_only',
+  defaultCity: 'Pitangui',
+  defaultState: 'MG',
+  defaultCep: '35650-000',
 };
 
 export const categories: Category[] = [

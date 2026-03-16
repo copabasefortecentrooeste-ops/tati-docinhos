@@ -73,17 +73,37 @@ export interface Order {
     neighborhood?: string;
     reference?: string;
   };
+  customerId?: string;
   isPickup: boolean;
   deliveryFee: number;
   subtotal: number;
   discount: number;
   total: number;
+  city?: string;
+  state?: string;
+  cep?: string;
   paymentMethod: string;
   changeFor?: number;
   couponCode?: string;
   scheduledDate?: string;
   scheduledTime?: string;
   createdAt: string;
+}
+
+export type DeliveryMode = 'city_only' | 'free';
+
+export interface Customer {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  city: string;
+  state: string;
+  cep: string;
+  neighborhood: string;
+  street: string;
+  number: string;
+  complement?: string;
 }
 
 export interface StoreConfig {
@@ -94,4 +114,8 @@ export interface StoreConfig {
   pixKey: string;
   deliveryPolicy: string;
   logo?: string;
+  deliveryMode: DeliveryMode;
+  defaultCity: string;
+  defaultState: string;
+  defaultCep: string;
 }

@@ -12,6 +12,10 @@ const fromDB = (r: Record<string, unknown>): StoreConfig => ({
   pixKey: r.pix_key as string,
   deliveryPolicy: r.delivery_policy as string,
   logo: (r.logo as string) || undefined,
+  deliveryMode: (r.delivery_mode as StoreConfig['deliveryMode']) || 'city_only',
+  defaultCity: (r.default_city as string) || 'Pitangui',
+  defaultState: (r.default_state as string) || 'MG',
+  defaultCep: (r.default_cep as string) || '35650-000',
 });
 
 const toDB = (c: StoreConfig) => ({
@@ -23,6 +27,10 @@ const toDB = (c: StoreConfig) => ({
   pix_key: c.pixKey,
   delivery_policy: c.deliveryPolicy,
   logo: c.logo ?? null,
+  delivery_mode: c.deliveryMode ?? 'city_only',
+  default_city: c.defaultCity ?? 'Pitangui',
+  default_state: c.defaultState ?? 'MG',
+  default_cep: c.defaultCep ?? '35650-000',
 });
 
 interface StoreConfigState {
@@ -41,7 +49,7 @@ export const useStoreConfigStore = create<StoreConfigState>()(
           const { data } = await supabase.from('store_config').select('*').eq('id', 1).maybeSingle();
           if (data) set({ config: fromDB(data) });
           else await supabase.from('store_config').upsert(toDB(get().config));
-        } catch (e) {
+        } catch {
           console.warn('[storeConfig] offline, using local data');
         }
       },
@@ -51,7 +59,7 @@ export const useStoreConfigStore = create<StoreConfigState>()(
         set({ config: next });
         try {
           await supabase.from('store_config').upsert(toDB(next));
-        } catch (e) {
+        } catch {
           console.warn('[storeConfig] sync failed, saved locally');
         }
       },
