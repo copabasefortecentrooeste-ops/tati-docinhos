@@ -16,10 +16,10 @@ export default function AdminLogin() {
     if (!email.trim() || !password.trim()) return;
 
     setIsSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setIsSubmitting(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
+      setIsSubmitting(false);
       toast({
         title: 'Credenciais inválidas',
         description: 'Verifique o e-mail e a senha e tente novamente.',
@@ -28,8 +28,20 @@ export default function AdminLogin() {
       return;
     }
 
-    // Navigation is triggered by AdminLayout's onAuthStateChange listener.
-    // But we also navigate here as a fallback for direct login.
+    // Verify admin role from app_metadata (set server-side via service-role key)
+    const role = data.session?.user?.app_metadata?.role;
+    if (role !== 'admin') {
+      await supabase.auth.signOut();
+      setIsSubmitting(false);
+      toast({
+        title: 'Acesso não autorizado',
+        description: 'Esta conta não tem permissão de administrador.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(false);
     navigate('/admin');
   };
 

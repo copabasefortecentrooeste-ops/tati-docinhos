@@ -22,16 +22,26 @@ export default function AdminLayout() {
 
   useEffect(() => {
     // Get current session on mount
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
+    supabase.auth.getSession().then(async ({ data }) => {
+      const sess = data.session;
+      if (!sess || sess.user.app_metadata?.role !== 'admin') {
+        if (sess) await supabase.auth.signOut(); // sign out non-admin user
+        navigate('/admin/login', { replace: true });
+        setIsLoading(false);
+        return;
+      }
+      setSession(sess);
       setIsLoading(false);
-      if (!s) navigate('/admin/login');
     });
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      if (!s) navigate('/admin/login');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
+      if (!s || s.user.app_metadata?.role !== 'admin') {
+        if (s) await supabase.auth.signOut();
+        navigate('/admin/login', { replace: true });
+      } else {
+        setSession(s);
+      }
     });
 
     return () => subscription.unsubscribe();
