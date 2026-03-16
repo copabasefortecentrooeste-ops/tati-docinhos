@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Package, ChefHat, Truck, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
-import { useOrderStore } from '@/store/orderStore';
+import { supabase } from '@/lib/supabase';
 import { ORDER_STATUS_LABELS, formatPrice } from '@/data/mockData';
-import type { OrderStatus } from '@/types';
+import type { Order, OrderStatus } from '@/types';
 
 const statusSteps: { key: OrderStatus; icon: React.ElementType; label: string }[] = [
   { key: 'received', icon: ClipboardList, label: 'Recebido' },
@@ -18,12 +18,44 @@ export default function OrderTracking() {
   const [searchParams] = useSearchParams();
   const [code, setCode] = useState(searchParams.get('code') || '');
   const [phone, setPhone] = useState(searchParams.get('phone') || '');
-  const [searched, setSearched] = useState(!!searchParams.get('code'));
+  const [searched, setSearched] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [order, setOrder] = useState<Order | null>(null);
 
-  const order = useOrderStore((s) => s.getOrder(code, phone));
+  const handleSearch = async () => {
+    if (!code.trim() || !phone.trim()) return;
 
-  const handleSearch = () => {
-    if (code.trim() && phone.trim()) setSearched(true);
+    setIsLoading(true);
+    setSearched(false);
+    setOrder(null);
+
+    const { data, error } = await supabase.rpc('get_order_by_code_phone', {
+      p_code: code.trim(),
+      p_phone: phone.trim(),
+    });
+
+    setIsLoading(false);
+    setSearched(true);
+
+    if (error || !data) {
+      setOrder(null);
+      return;
+    }
+
+    const mapped: Order = {
+      ...data,
+      deliveryFee: data.delivery_fee,
+      isPickup: data.is_pickup,
+      scheduledDate: data.scheduled_date,
+      scheduledTime: data.scheduled_time,
+      createdAt: data.created_at,
+      customer: { neighborhood: data.customer_neighborhood, name: '', phone: phone.trim() },
+      // Fields not returned by the RPC — set safe defaults
+      subtotal: data.total,
+      discount: 0,
+      paymentMethod: '',
+    };
+    setOrder(mapped);
   };
 
   const currentStepIndex = order ? statusSteps.findIndex((s) => s.key === order.status) : -1;
@@ -53,13 +85,18 @@ export default function OrderTracking() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleSearch}
-            className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            <Search size={16} /> Buscar
+            {isLoading ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+            ) : (
+              <><Search size={16} /> Buscar</>
+            )}
           </motion.button>
         </div>
 
-        {searched && !order && (
+        {searched && !order && !isLoading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 text-center">
             <Package size={40} className="mx-auto text-muted-foreground/40" />
             <p className="mt-3 text-muted-foreground">Pedido não encontrado. Verifique os dados.</p>

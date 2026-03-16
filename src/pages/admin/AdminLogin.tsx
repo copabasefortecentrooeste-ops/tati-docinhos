@@ -1,56 +1,85 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Lock } from 'lucide-react';
-import { useAdminStore } from '@/store/adminStore';
-import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminLogin() {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const login = useAdminStore((s) => s.login);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(password)) {
-      navigate('/admin');
-    } else {
-      toast({ title: 'Senha incorreta', variant: 'destructive' });
+    if (!email.trim() || !password.trim()) return;
+
+    setIsSubmitting(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setIsSubmitting(false);
+
+    if (error) {
+      toast({
+        title: 'Credenciais inválidas',
+        description: 'Verifique o e-mail e a senha e tente novamente.',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    // Navigation is triggered by AdminLayout's onAuthStateChange listener.
+    // But we also navigate here as a fallback for direct login.
+    navigate('/admin');
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm rounded-container bg-card p-8 shadow-elevated"
-      >
-        <div className="mb-6 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Lock size={20} className="text-primary" />
-          </div>
-          <h1 className="mt-4 font-display text-2xl font-bold text-foreground">Painel Admin</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Taty Docinhos</p>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="text-4xl mb-3">🍬</div>
+          <h1 className="text-2xl font-bold text-gray-900">Taty Admin</h1>
+          <p className="text-gray-500 text-sm mt-1">Acesso restrito</p>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="password"
-            placeholder="Senha de acesso"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-button border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <motion.button
-            whileTap={{ scale: 0.95 }}
+          <div>
+            <Label htmlFor="email">E-mail</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@tatydocinhos.com.br"
+              autoComplete="username"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          <Button
             type="submit"
-            className="w-full rounded-button bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            className="w-full bg-rose-500 hover:bg-rose-600"
+            disabled={isSubmitting}
           >
-            Entrar
-          </motion.button>
+            {isSubmitting ? 'Entrando...' : 'Entrar'}
+          </Button>
         </form>
-        <p className="mt-4 text-center text-xs text-muted-foreground">Senha demo: taty2024</p>
-      </motion.div>
+      </div>
     </div>
   );
 }

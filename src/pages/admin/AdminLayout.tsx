@@ -1,7 +1,8 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, ShoppingBag, MapPin, Tag, Clock, Settings, LogOut } from 'lucide-react';
-import { useAdminStore } from '@/store/adminStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 const navItems = [
   { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -14,16 +15,42 @@ const navItems = [
 ];
 
 export default function AdminLayout() {
-  const isAuthenticated = useAdminStore((s) => s.isAuthenticated);
-  const logout = useAdminStore((s) => s.logout);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (!isAuthenticated) navigate('/admin/login');
-  }, [isAuthenticated, navigate]);
+    // Get current session on mount
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      setIsLoading(false);
+      if (!s) navigate('/admin/login');
+    });
 
-  if (!isAuthenticated) return null;
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (!s) navigate('/admin/login');
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/admin/login');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!session) return null;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -49,7 +76,7 @@ export default function AdminLayout() {
             );
           })}
           <button
-            onClick={() => { logout(); navigate('/admin/login'); }}
+            onClick={handleLogout}
             className="mt-4 flex items-center gap-2.5 rounded-button px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <LogOut size={16} /> Sair
