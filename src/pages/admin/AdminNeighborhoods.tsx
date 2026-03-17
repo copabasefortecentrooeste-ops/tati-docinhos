@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Save, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, X, WifiOff, RefreshCw } from 'lucide-react';
 import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
 import { formatPrice } from '@/lib/format';
 import { mapSupabaseError } from '@/lib/supabaseError';
+import { inputCls } from '@/lib/adminStyles';
 import { toast } from '@/hooks/use-toast';
 import type { DeliveryNeighborhood } from '@/types';
 
@@ -10,8 +11,15 @@ type FormState = { name: string; fee: string };
 const emptyForm = (): FormState => ({ name: '', fee: '' });
 
 export default function AdminNeighborhoods() {
-  const { neighborhoods, addNeighborhood, updateNeighborhood, deleteNeighborhood, toggleActive } =
+  const { neighborhoods, loadError, initFromDB, addNeighborhood, updateNeighborhood, deleteNeighborhood, toggleActive } =
     useNeighborhoodsStore();
+  const [retrying, setRetrying] = useState(false);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    await initFromDB();
+    setRetrying(false);
+  };
 
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,9 +65,6 @@ export default function AdminNeighborhoods() {
     setConfirmDelete(null);
   };
 
-  const inputCls =
-    'w-full rounded-button border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring';
-
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -76,6 +81,24 @@ export default function AdminNeighborhoods() {
           </button>
         )}
       </div>
+
+      {/* Error banner */}
+      {loadError && (
+        <div className="mt-4 flex items-center justify-between rounded-card border border-destructive/40 bg-destructive/5 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <WifiOff size={14} />
+            Não foi possível carregar dados do banco. Exibindo cache local.
+          </div>
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            className="flex items-center gap-1.5 text-xs text-destructive hover:underline disabled:opacity-50"
+          >
+            <RefreshCw size={11} className={retrying ? 'animate-spin' : ''} />
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       {/* Add / Edit form */}
       {(adding || editingId !== null) && (

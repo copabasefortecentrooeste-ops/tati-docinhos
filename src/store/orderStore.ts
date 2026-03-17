@@ -62,9 +62,7 @@ interface OrderState {
   loadError: boolean;
   addOrder: (order: Order) => Promise<void>;
   updateStatus: (id: string, status: Order['status']) => Promise<void>;
-  getOrder: (code: string, phone: string) => Order | undefined;
   getOrderByCode: (code: string) => Order | undefined;
-  getCustomerOrders: (customerId: string) => Order[];
   initFromDB: () => Promise<void>;
   /**
    * Subscribe to Supabase Realtime for INSERT/UPDATE on the orders table.
@@ -149,11 +147,7 @@ export const useOrderStore = create<OrderState>()(
         }
       },
 
-      getOrder: (code, phone) =>
-        get().orders.find((o) => o.code === code && o.customer.phone === phone),
       getOrderByCode: (code) => get().orders.find((o) => o.code === code),
-      getCustomerOrders: (customerId) =>
-        get().orders.filter((o) => o.customerId === customerId),
     }),
     {
       name: 'taty-orders',

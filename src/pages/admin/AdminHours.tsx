@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Clock, CheckCircle, PauseCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Save, Clock, CheckCircle, PauseCircle, XCircle, AlertTriangle, WifiOff, RefreshCw } from 'lucide-react';
 import { useHoursStore } from '@/store/hoursStore';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { getStoreStatus, getTodayHours } from '@/lib/storeStatus';
@@ -18,10 +18,17 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AdminHours() {
-  const { hours, updateHours } = useHoursStore();
+  const { hours, loadError, initFromDB, updateHours } = useHoursStore();
   const { config, updateConfig } = useStoreConfigStore();
   const [draft, setDraft] = useState(() => hours.map((h) => ({ ...h })));
   const [saving, setSaving] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    await initFromDB();
+    setRetrying(false);
+  };
 
   const status = getStoreStatus(config, hours);
   const todayHours = getTodayHours(hours);
@@ -52,13 +59,32 @@ export default function AdminHours() {
     toast({ title: value === null ? 'Modo automático ativado' : `Status: ${labels[value]}` });
   };
 
-  const inputCls =
+  // Compact style for HH:MM time inputs — smaller than the shared inputCls
+  const timeInputCls =
     'rounded-button border border-input bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring tabular-nums';
 
   return (
     <div>
       <h1 className="font-display text-2xl font-bold text-foreground">Horários</h1>
       <p className="mt-1 text-sm text-muted-foreground">Horários de funcionamento e status operacional</p>
+
+      {/* Error banner */}
+      {loadError && (
+        <div className="mt-4 flex items-center justify-between rounded-card border border-destructive/40 bg-destructive/5 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <WifiOff size={14} />
+            Não foi possível carregar horários do banco. Exibindo cache local.
+          </div>
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            className="flex items-center gap-1.5 text-xs text-destructive hover:underline disabled:opacity-50"
+          >
+            <RefreshCw size={11} className={retrying ? 'animate-spin' : ''} />
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       {/* Live status preview */}
       <div
@@ -135,14 +161,14 @@ export default function AdminHours() {
                   type="time"
                   value={h.openTime}
                   onChange={(e) => setField(h.id, 'openTime', e.target.value)}
-                  className={inputCls}
+                  className={timeInputCls}
                 />
                 <span className="text-xs text-muted-foreground">até</span>
                 <input
                   type="time"
                   value={h.closeTime}
                   onChange={(e) => setField(h.id, 'closeTime', e.target.value)}
-                  className={inputCls}
+                  className={timeInputCls}
                 />
               </div>
             ) : (
@@ -151,6 +177,12 @@ export default function AdminHours() {
           </div>
         ))}
       </div>
+
+      {draft.length > 0 && draft.every((h) => !h.active) && (
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Todos os dias estão fechados. A loja não aceita pedidos por horário automático.
+        </p>
+      )}
 
       <button
         onClick={handleSave}
