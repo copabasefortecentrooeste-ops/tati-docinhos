@@ -89,6 +89,8 @@ export interface Order {
   scheduledTime?: string;
   /** True when the order was placed outside the store's scheduled hours */
   outsideHours?: boolean;
+  /** Client-generated idempotency key — prevents duplicate order submissions */
+  requestId?: string;
   createdAt: string;
 }
 

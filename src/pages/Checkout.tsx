@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Truck, Store, LogIn, AlertTriangle, Clock } from 'lucide-react';
@@ -11,6 +11,7 @@ import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { useHoursStore } from '@/store/hoursStore';
 import { getStoreStatus } from '@/lib/storeStatus';
 import { formatPrice } from '@/lib/format';
+import { mapSupabaseError } from '@/lib/supabaseError';
 import { toast } from '@/hooks/use-toast';
 import type { Order, Coupon } from '@/types';
 
@@ -46,6 +47,11 @@ export default function Checkout() {
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Generate a single request_id per checkout session.
+  // This ID is stable across re-renders and retries, preventing duplicate orders
+  // if the user retries the same submission (network retry, double-click, etc.)
+  const requestIdRef = useRef<string>(crypto.randomUUID());
 
   // Pre-fill from customer profile when it loads
   useEffect(() => {
@@ -153,18 +159,18 @@ export default function Checkout() {
       scheduledDate: scheduledDate || undefined,
       scheduledTime: scheduledTime || undefined,
       outsideHours: storeStatus.isOutsideHours,
+      requestId: requestIdRef.current,
       createdAt: new Date().toISOString(),
     };
     try {
       await addOrder(order);
       clearCart();
+      // Refresh requestId so a future order from the same session gets a new ID
+      requestIdRef.current = crypto.randomUUID();
       navigate(`/confirmacao/${code}`);
-    } catch {
-      toast({
-        title: 'Erro ao enviar pedido',
-        description: 'Não foi possível registrar seu pedido. Verifique sua conexão e tente novamente.',
-        variant: 'destructive',
-      });
+    } catch (err) {
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
       setIsSubmitting(false);
     } finally {
       setIsSubmitting(false);

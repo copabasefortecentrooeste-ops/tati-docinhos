@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, Save, X } from 'lucide-react';
 import { useCouponsStore } from '@/store/couponsStore';
 import { formatPrice } from '@/lib/format';
+import { mapSupabaseError } from '@/lib/supabaseError';
 import { toast } from '@/hooks/use-toast';
 import type { Coupon } from '@/types';
 
@@ -53,7 +54,8 @@ export default function AdminCoupons() {
       }
       closeForm();
     } catch (err) {
-      toast({ title: 'Erro ao salvar cupom', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     }
   };
 
@@ -62,7 +64,8 @@ export default function AdminCoupons() {
       await deleteCoupon(id);
       toast({ title: 'Cupom removido' });
     } catch (err) {
-      toast({ title: 'Erro ao excluir cupom', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     }
     setConfirmDelete(null);
   };
@@ -169,7 +172,8 @@ export default function AdminCoupons() {
                     try {
                       await toggleActive(c.id);
                     } catch (err) {
-                      toast({ title: 'Erro ao alterar status do cupom', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+                      const mapped = mapSupabaseError(err);
+                      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
                     }
                   }}
                   className={`rounded-button px-2 py-0.5 text-[10px] font-medium transition-colors ${

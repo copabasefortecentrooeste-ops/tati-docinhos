@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, Save, X } from 'lucide-react';
 import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
 import { formatPrice } from '@/lib/format';
+import { mapSupabaseError } from '@/lib/supabaseError';
 import { toast } from '@/hooks/use-toast';
 import type { DeliveryNeighborhood } from '@/types';
 
@@ -40,7 +41,8 @@ export default function AdminNeighborhoods() {
       }
       closeForm();
     } catch (err) {
-      toast({ title: 'Erro ao salvar bairro', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     }
   };
 
@@ -49,7 +51,8 @@ export default function AdminNeighborhoods() {
       await deleteNeighborhood(id);
       toast({ title: 'Bairro removido' });
     } catch (err) {
-      toast({ title: 'Erro ao excluir bairro', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     }
     setConfirmDelete(null);
   };
@@ -113,7 +116,8 @@ export default function AdminNeighborhoods() {
                     try {
                       await toggleActive(n.id);
                     } catch (err) {
-                      toast({ title: 'Erro ao alterar status do bairro', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+                      const mapped = mapSupabaseError(err);
+                      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
                     }
                   }}
                   title={n.active ? 'Clique para desativar' : 'Clique para ativar'}

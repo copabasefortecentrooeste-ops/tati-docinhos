@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Phone, Instagram, MapPin, Key, FileText, Upload, Save, Store, Truck, ShieldAlert, MessageSquare } from 'lucide-react';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { compressImage } from '@/lib/imageUtils';
+import { mapSupabaseError } from '@/lib/supabaseError';
 import { toast } from '@/hooks/use-toast';
 import type { DeliveryMode } from '@/types';
 
@@ -37,11 +38,8 @@ export default function AdminConfig() {
       await updateConfig(form);
       toast({ title: 'Configurações salvas!' });
     } catch (err) {
-      toast({
-        title: 'Erro ao salvar configurações',
-        description: 'Verifique sua conexão e tente novamente.',
-        variant: 'destructive',
-      });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     } finally {
       setSaving(false);
     }

@@ -4,6 +4,7 @@ import { useProductsStore } from '@/store/productsStore';
 import { compressImage } from '@/lib/imageUtils';
 import { uploadProductImage } from '@/lib/storageUtils';
 import { formatPrice } from '@/lib/format';
+import { mapSupabaseError } from '@/lib/supabaseError';
 import { toast } from '@/hooks/use-toast';
 import type { Product, Category } from '@/types';
 
@@ -91,7 +92,8 @@ export default function AdminProducts() {
       }
       closeCatForm();
     } catch (err) {
-      toast({ title: 'Erro ao salvar categoria', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     } finally {
       setSavingCat(false);
     }
@@ -106,7 +108,8 @@ export default function AdminProducts() {
         toast({ title: 'Categoria removida' });
       }
     } catch (err) {
-      toast({ title: 'Erro ao excluir categoria', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     }
     setConfirmDeleteCat(null);
   };
@@ -181,7 +184,8 @@ export default function AdminProducts() {
       }
       closeForm();
     } catch (err) {
-      toast({ title: 'Erro ao salvar produto', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -192,7 +196,8 @@ export default function AdminProducts() {
       await deleteProduct(id);
       toast({ title: 'Produto removido' });
     } catch (err) {
-      toast({ title: 'Erro ao excluir produto', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     }
     setConfirmDelete(null);
   };

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useOrderStore } from '@/store/orderStore';
 import { formatPrice } from '@/lib/format';
 import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
+import { mapSupabaseError } from '@/lib/supabaseError';
 import type { OrderStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -20,11 +21,8 @@ export default function AdminOrders() {
     try {
       await updateStatus(id, newStatus);
     } catch (err) {
-      toast({
-        title: 'Erro ao atualizar status',
-        description: 'O status não foi alterado. Tente novamente.',
-        variant: 'destructive',
-      });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     }
   };
 

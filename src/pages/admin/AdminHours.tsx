@@ -3,6 +3,7 @@ import { Save, Clock, CheckCircle, PauseCircle, XCircle, AlertTriangle } from 'l
 import { useHoursStore } from '@/store/hoursStore';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { getStoreStatus, getTodayHours } from '@/lib/storeStatus';
+import { mapSupabaseError } from '@/lib/supabaseError';
 import { toast } from '@/hooks/use-toast';
 import type { ManualStoreStatus } from '@/types';
 
@@ -33,11 +34,8 @@ export default function AdminHours() {
       await Promise.all(draft.map((h) => updateHours(h.id, h)));
       toast({ title: 'Horários salvos!' });
     } catch (err) {
-      toast({
-        title: 'Erro ao salvar horários',
-        description: 'Verifique sua conexão e tente novamente.',
-        variant: 'destructive',
-      });
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
