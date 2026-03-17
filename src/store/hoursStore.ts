@@ -18,6 +18,8 @@ const toDB = (h: BusinessHours) => ({
 
 interface HoursState {
   hours: BusinessHours[];
+  /** True while initFromDB is in flight. Never persisted. */
+  loading: boolean;
   loadError: boolean;
   updateHours: (id: string, updates: Partial<BusinessHours>) => Promise<void>;
   initFromDB: () => Promise<void>;
@@ -27,14 +29,23 @@ export const useHoursStore = create<HoursState>()(
   persist(
     (set, get) => ({
       hours: defaultHours,
+      loading: true,
       loadError: false,
 
       initFromDB: async () => {
+        set({ loading: true, loadError: false });
         try {
           const { data } = await supabase.from('business_hours').select('*').order('day_of_week');
-          if (data && data.length > 0) set({ hours: data.map(fromDB) });
-          else await supabase.from('business_hours').upsert(get().hours.map(toDB));
-        } catch (err) { console.warn('[hours] offline', err); set({ loadError: true }); }
+          if (data && data.length > 0) {
+            set({ hours: data.map(fromDB), loading: false });
+          } else {
+            await supabase.from('business_hours').upsert(get().hours.map(toDB));
+            set({ loading: false });
+          }
+        } catch (err) {
+          console.warn('[hours] offline', err);
+          set({ loading: false, loadError: true });
+        }
       },
 
       updateHours: async (id, updates) => {
@@ -51,6 +62,9 @@ export const useHoursStore = create<HoursState>()(
         }
       },
     }),
-    { name: 'taty-hours' }
-  )
+    {
+      name: 'taty-hours',
+      partialize: (s) => ({ hours: s.hours }),
+    },
+  ),
 );

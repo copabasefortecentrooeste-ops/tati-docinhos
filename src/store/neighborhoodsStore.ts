@@ -6,6 +6,9 @@ import { supabase } from '@/lib/supabase';
 
 interface NeighborhoodsState {
   neighborhoods: DeliveryNeighborhood[];
+  /** True while initFromDB is in flight. Never persisted. */
+  loading: boolean;
+  loadError: boolean;
   addNeighborhood: (n: DeliveryNeighborhood) => Promise<void>;
   updateNeighborhood: (id: string, updates: Partial<DeliveryNeighborhood>) => Promise<void>;
   deleteNeighborhood: (id: string) => Promise<void>;
@@ -17,13 +20,23 @@ export const useNeighborhoodsStore = create<NeighborhoodsState>()(
   persist(
     (set, get) => ({
       neighborhoods: defaultNeighborhoods,
+      loading: true,
+      loadError: false,
 
       initFromDB: async () => {
+        set({ loading: true, loadError: false });
         try {
           const { data } = await supabase.from('neighborhoods').select('*');
-          if (data && data.length > 0) set({ neighborhoods: data as DeliveryNeighborhood[] });
-          else await supabase.from('neighborhoods').upsert(get().neighborhoods);
-        } catch { console.warn('[neighborhoods] offline'); }
+          if (data && data.length > 0) {
+            set({ neighborhoods: data as DeliveryNeighborhood[], loading: false });
+          } else {
+            await supabase.from('neighborhoods').upsert(get().neighborhoods);
+            set({ loading: false });
+          }
+        } catch (err) {
+          console.warn('[neighborhoods] offline', err);
+          set({ loading: false, loadError: true });
+        }
       },
 
       addNeighborhood: async (n) => {
@@ -73,6 +86,9 @@ export const useNeighborhoodsStore = create<NeighborhoodsState>()(
         }
       },
     }),
-    { name: 'taty-neighborhoods' }
-  )
+    {
+      name: 'taty-neighborhoods',
+      partialize: (s) => ({ neighborhoods: s.neighborhoods }),
+    },
+  ),
 );

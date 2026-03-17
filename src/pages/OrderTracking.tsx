@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Package, ChefHat, Truck, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
+import { Search, Package, ChefHat, Truck, CheckCircle2, XCircle, ClipboardList, WifiOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatPrice } from '@/lib/format';
 import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
@@ -22,6 +22,12 @@ export default function OrderTracking() {
   const [searched, setSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
+  /**
+   * fetchError is set when the RPC call itself fails (network/server error).
+   * It is null when the RPC succeeded but returned no data ("not found").
+   * This lets the UI show two distinct states: "not found" vs "error occurred".
+   */
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const handleSearch = async () => {
     if (!code.trim() || !phone.trim()) return;
@@ -29,6 +35,7 @@ export default function OrderTracking() {
     setIsLoading(true);
     setSearched(false);
     setOrder(null);
+    setFetchError(null);
 
     const { data, error } = await supabase.rpc('get_order_by_code_phone', {
       p_code: code.trim(),
@@ -38,7 +45,14 @@ export default function OrderTracking() {
     setIsLoading(false);
     setSearched(true);
 
-    if (error || !data) {
+    // RPC-level error (network, permission, server) — distinct from "not found"
+    if (error) {
+      setFetchError('Não foi possível consultar seu pedido. Verifique sua conexão e tente novamente.');
+      return;
+    }
+
+    // RPC succeeded but no matching order found
+    if (!data) {
       setOrder(null);
       return;
     }
@@ -73,14 +87,14 @@ export default function OrderTracking() {
             type="text"
             placeholder="Código do pedido"
             value={code}
-            onChange={(e) => { setCode(e.target.value); setSearched(false); }}
+            onChange={(e) => { setCode(e.target.value); setSearched(false); setFetchError(null); }}
             className="w-full rounded-button border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <input
             type="tel"
             placeholder="Seu telefone"
             value={phone}
-            onChange={(e) => { setPhone(e.target.value); setSearched(false); }}
+            onChange={(e) => { setPhone(e.target.value); setSearched(false); setFetchError(null); }}
             className="w-full rounded-button border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <motion.button
@@ -97,13 +111,25 @@ export default function OrderTracking() {
           </motion.button>
         </div>
 
-        {searched && !order && !isLoading && (
+        {/* ── Error state: RPC/network failure ─────────────────────────────── */}
+        {searched && fetchError && !isLoading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 text-center">
-            <Package size={40} className="mx-auto text-muted-foreground/40" />
-            <p className="mt-3 text-muted-foreground">Pedido não encontrado. Verifique os dados.</p>
+            <WifiOff size={40} className="mx-auto text-destructive/50" />
+            <p className="mt-3 text-sm font-medium text-destructive">Erro ao consultar pedido</p>
+            <p className="mt-1 text-xs text-muted-foreground">{fetchError}</p>
           </motion.div>
         )}
 
+        {/* ── Not found: RPC succeeded, no matching order ───────────────────── */}
+        {searched && !order && !fetchError && !isLoading && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 text-center">
+            <Package size={40} className="mx-auto text-muted-foreground/40" />
+            <p className="mt-3 text-muted-foreground">Pedido não encontrado.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Verifique o código e o telefone informados.</p>
+          </motion.div>
+        )}
+
+        {/* ── Found ─────────────────────────────────────────────────────────── */}
         {order && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

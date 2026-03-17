@@ -47,6 +47,8 @@ const catToDB = (c: Category) => ({
 interface ProductsState {
   products: Product[];
   categories: Category[];
+  /** True while initFromDB is in flight. Never persisted. */
+  loading: boolean;
   loadError: boolean;
 
   // Products
@@ -67,10 +69,12 @@ export const useProductsStore = create<ProductsState>()(
     (set, get) => ({
       products: defaultProducts,
       categories: defaultCategories,
+      loading: true,
       loadError: false,
 
       // ── Init ──────────────────────────────────────────────
       initFromDB: async () => {
+        set({ loading: true, loadError: false });
         try {
           const [{ data: prods }, { data: cats }] = await Promise.all([
             supabase.from('products').select('*'),
@@ -88,9 +92,11 @@ export const useProductsStore = create<ProductsState>()(
           } else {
             await supabase.from('products').upsert(get().products.map(prodToDB));
           }
+
+          set({ loading: false });
         } catch (err) {
           console.warn('[products] offline, using local data', err);
-          set({ loadError: true });
+          set({ loading: false, loadError: true });
         }
       },
 
@@ -181,6 +187,9 @@ export const useProductsStore = create<ProductsState>()(
         return { ok: true };
       },
     }),
-    { name: 'taty-products' }
-  )
+    {
+      name: 'taty-products',
+      partialize: (s) => ({ products: s.products, categories: s.categories }),
+    },
+  ),
 );

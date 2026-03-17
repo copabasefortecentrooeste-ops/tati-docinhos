@@ -43,6 +43,8 @@ const toDB = (c: StoreConfig) => ({
 
 interface StoreConfigState {
   config: StoreConfig;
+  /** True while initFromDB is in flight. Never persisted. */
+  loading: boolean;
   loadError: boolean;
   updateConfig: (updates: Partial<StoreConfig>) => Promise<void>;
   initFromDB: () => Promise<void>;
@@ -52,16 +54,22 @@ export const useStoreConfigStore = create<StoreConfigState>()(
   persist(
     (set, get) => ({
       config: defaultConfig,
+      loading: true,
       loadError: false,
 
       initFromDB: async () => {
+        set({ loading: true, loadError: false });
         try {
           const { data } = await supabase.from('store_config').select('*').eq('id', 1).maybeSingle();
-          if (data) set({ config: fromDB(data) });
-          else await supabase.from('store_config').upsert(toDB(get().config));
+          if (data) {
+            set({ config: fromDB(data), loading: false });
+          } else {
+            await supabase.from('store_config').upsert(toDB(get().config));
+            set({ loading: false });
+          }
         } catch (err) {
           console.warn('[storeConfig] offline, using local data', err);
-          set({ loadError: true });
+          set({ loading: false, loadError: true });
         }
       },
 
@@ -77,6 +85,9 @@ export const useStoreConfigStore = create<StoreConfigState>()(
         }
       },
     }),
-    { name: 'taty-store-config' }
-  )
+    {
+      name: 'taty-store-config',
+      partialize: (s) => ({ config: s.config }),
+    },
+  ),
 );

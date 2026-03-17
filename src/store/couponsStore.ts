@@ -20,6 +20,9 @@ const toDB = (c: Coupon) => ({
 
 interface CouponsState {
   coupons: Coupon[];
+  /** True while initFromDB is in flight. Never persisted. */
+  loading: boolean;
+  loadError: boolean;
   addCoupon: (c: Coupon) => Promise<void>;
   updateCoupon: (id: string, updates: Partial<Coupon>) => Promise<void>;
   deleteCoupon: (id: string) => Promise<void>;
@@ -31,13 +34,23 @@ export const useCouponsStore = create<CouponsState>()(
   persist(
     (set, get) => ({
       coupons: defaultCoupons,
+      loading: true,
+      loadError: false,
 
       initFromDB: async () => {
+        set({ loading: true, loadError: false });
         try {
           const { data } = await supabase.from('coupons').select('*');
-          if (data && data.length > 0) set({ coupons: data.map(fromDB) });
-          else await supabase.from('coupons').upsert(get().coupons.map(toDB));
-        } catch { console.warn('[coupons] offline'); }
+          if (data && data.length > 0) {
+            set({ coupons: data.map(fromDB), loading: false });
+          } else {
+            await supabase.from('coupons').upsert(get().coupons.map(toDB));
+            set({ loading: false });
+          }
+        } catch (err) {
+          console.warn('[coupons] offline', err);
+          set({ loading: false, loadError: true });
+        }
       },
 
       addCoupon: async (c) => {
@@ -90,6 +103,9 @@ export const useCouponsStore = create<CouponsState>()(
         }
       },
     }),
-    { name: 'taty-coupons' }
-  )
+    {
+      name: 'taty-coupons',
+      partialize: (s) => ({ coupons: s.coupons }),
+    },
+  ),
 );

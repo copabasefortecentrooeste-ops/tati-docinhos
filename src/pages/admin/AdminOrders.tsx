@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useOrderStore } from '@/store/orderStore';
 import { formatPrice } from '@/lib/format';
@@ -6,15 +7,27 @@ import { mapSupabaseError } from '@/lib/supabaseError';
 import { formatDatetimeBR } from '@/lib/dateTime';
 import type { OrderStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 const statusFlow: OrderStatus[] = ['received', 'analyzing', 'production', 'delivery', 'delivered'];
 
 export default function AdminOrders() {
-  const { orders, updateStatus, initFromDB } = useOrderStore();
+  const { orders, loading, loadError, updateStatus, initFromDB, subscribeRealtime } = useOrderStore();
   const [filter, setFilter] = useState<string>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [realtimeActive, setRealtimeActive] = useState(false);
+
+  // ── Realtime subscription ──────────────────────────────────────────────────
+  // Subscribe on mount, unsubscribe on unmount (no leak).
+  // INSERT dedup is handled inside subscribeRealtime via id check.
+  useEffect(() => {
+    const unsubscribe = subscribeRealtime();
+    setRealtimeActive(true);
+    return () => {
+      unsubscribe();
+      setRealtimeActive(false);
+    };
+  }, [subscribeRealtime]);
 
   const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
 
@@ -42,10 +55,65 @@ export default function AdminOrders() {
     toast({ title: 'Pedidos atualizados' });
   };
 
+  // ── Loading skeleton ──────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-2xl font-bold text-foreground">Pedidos</h1>
+        </div>
+        <div className="mt-6 space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse rounded-card border border-border bg-card p-4">
+              <div className="h-4 w-32 rounded bg-muted" />
+              <div className="mt-2 h-3 w-48 rounded bg-muted" />
+              <div className="mt-3 h-3 w-24 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error banner ──────────────────────────────────────────────────────────
+  if (loadError) {
+    return (
+      <div>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-2xl font-bold text-foreground">Pedidos</h1>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+            Tentar novamente
+          </button>
+        </div>
+        <div className="mt-6 rounded-card border border-destructive/40 bg-destructive/5 p-6 text-center">
+          <WifiOff size={32} className="mx-auto text-destructive/60" />
+          <p className="mt-3 text-sm font-medium text-destructive">Não foi possível carregar os pedidos</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Verifique sua conexão e clique em "Tentar novamente".
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main view ─────────────────────────────────────────────────────────────
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-foreground">Pedidos</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-display text-2xl font-bold text-foreground">Pedidos</h1>
+          {realtimeActive && (
+            <span className="flex items-center gap-1 rounded-button bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+              <Wifi size={9} />
+              Ao vivo
+            </span>
+          )}
+        </div>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
