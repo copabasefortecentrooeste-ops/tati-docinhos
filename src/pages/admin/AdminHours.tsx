@@ -3,6 +3,7 @@ import { Save, Clock, CheckCircle, PauseCircle, XCircle, AlertTriangle } from 'l
 import { useHoursStore } from '@/store/hoursStore';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { getStoreStatus, getTodayHours } from '@/lib/storeStatus';
+import { currentTimeBR } from '@/lib/dateTime';
 import { mapSupabaseError } from '@/lib/supabaseError';
 import { toast } from '@/hooks/use-toast';
 import type { ManualStoreStatus } from '@/types';
@@ -77,6 +78,9 @@ export default function AdminHours() {
           {status.type !== 'open' && status.message && (
             <span className="ml-2 font-normal opacity-80">— {status.message}</span>
           )}
+          <span className="ml-2 font-normal opacity-60 tabular-nums">
+            · {currentTimeBR()} (Brasília)
+          </span>
         </span>
       </div>
 

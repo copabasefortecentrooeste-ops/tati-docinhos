@@ -1,4 +1,5 @@
 import type { StoreConfig, BusinessHours } from '@/types';
+import { getDayOfWeekBR, getTimeMinutesBR } from '@/lib/dateTime';
 
 export type StoreStatusType = 'open' | 'closed' | 'paused' | 'outside_hours';
 
@@ -22,6 +23,8 @@ export interface StoreStatus {
  *  2. manual_status === 'paused'  → paused (blocks orders)
  *  3. business_hours check        → outside_hours (blocks if blockOrdersOutsideHours)
  *  4. everything else             → open
+ *
+ * All time comparisons use America/Sao_Paulo timezone via dateTime helpers.
  */
 export function getStoreStatus(
   config: StoreConfig,
@@ -53,7 +56,8 @@ export function getStoreStatus(
   }
 
   // ── 3. Business hours check ──────────────────────────────────
-  const dayOfWeek = now.getDay(); // 0 = Sunday … 6 = Saturday
+  // getDayOfWeekBR: 0 = Sunday … 6 = Saturday in America/Sao_Paulo
+  const dayOfWeek = getDayOfWeekBR(now);
   const todayHours = hours.find((h) => h.dayOfWeek === dayOfWeek);
   const isBlocked = config.blockOrdersOutsideHours ?? false;
 
@@ -69,7 +73,8 @@ export function getStoreStatus(
 
   const [openH, openM] = todayHours.openTime.split(':').map(Number);
   const [closeH, closeM] = todayHours.closeTime.split(':').map(Number);
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  // getTimeMinutesBR: minutes since midnight in America/Sao_Paulo
+  const currentMinutes = getTimeMinutesBR(now);
   const openMinutes = openH * 60 + openM;
   const closeMinutes = closeH * 60 + closeM;
 
@@ -95,7 +100,7 @@ export function getStoreStatus(
   };
 }
 
-/** Returns today's business hours entry (or null if not found) */
+/** Returns today's business hours entry (or null if not found), using America/Sao_Paulo. */
 export function getTodayHours(hours: BusinessHours[], now: Date = new Date()): BusinessHours | null {
-  return hours.find((h) => h.dayOfWeek === now.getDay()) ?? null;
+  return hours.find((h) => h.dayOfWeek === getDayOfWeekBR(now)) ?? null;
 }

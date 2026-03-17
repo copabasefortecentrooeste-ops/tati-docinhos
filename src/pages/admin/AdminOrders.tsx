@@ -3,6 +3,7 @@ import { useOrderStore } from '@/store/orderStore';
 import { formatPrice } from '@/lib/format';
 import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
 import { mapSupabaseError } from '@/lib/supabaseError';
+import { formatDatetimeBR } from '@/lib/dateTime';
 import type { OrderStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -158,7 +159,7 @@ export default function AdminOrders() {
             </div>
 
             <p className="mt-2 text-[10px] text-muted-foreground">
-              {new Date(order.createdAt).toLocaleString('pt-BR')}
+              {formatDatetimeBR(order.createdAt)}
               {order.paymentMethod && ` • ${order.paymentMethod.toUpperCase()}`}
               {order.cep && ` • CEP ${order.cep}`}
             </p>

@@ -4,13 +4,14 @@ import { ShoppingBag, DollarSign, TrendingUp, Clock } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
 import { formatPrice } from '@/lib/format';
 import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
+import { isTodayBR } from '@/lib/dateTime';
 
 export default function AdminDashboard() {
   const orders = useOrderStore((s) => s.orders);
 
   const stats = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayOrders = orders.filter((o) => o.createdAt.startsWith(today));
+    // isTodayBR uses America/Sao_Paulo — avoids UTC boundary bug after 21h UTC
+    const todayOrders = orders.filter((o) => isTodayBR(o.createdAt));
     const revenue = todayOrders.reduce((s, o) => s + o.total, 0);
     const avg = todayOrders.length ? revenue / todayOrders.length : 0;
 
