@@ -78,26 +78,35 @@ export default function AdminProducts() {
       toast({ title: 'Nome da categoria obrigatório', variant: 'destructive' }); return;
     }
     setSavingCat(true);
-    if (editingCatId) {
-      await updateCategory(editingCatId, { name: catForm.name.trim(), description: catForm.description.trim() });
-      toast({ title: 'Categoria atualizada!' });
-    } else {
-      await addCategory({
-        id: crypto.randomUUID(), name: catForm.name.trim(),
-        slug: slugify(catForm.name), description: catForm.description.trim(), image: '',
-      });
-      toast({ title: 'Categoria criada!' });
+    try {
+      if (editingCatId) {
+        await updateCategory(editingCatId, { name: catForm.name.trim(), description: catForm.description.trim() });
+        toast({ title: 'Categoria atualizada!' });
+      } else {
+        await addCategory({
+          id: crypto.randomUUID(), name: catForm.name.trim(),
+          slug: slugify(catForm.name), description: catForm.description.trim(), image: '',
+        });
+        toast({ title: 'Categoria criada!' });
+      }
+      closeCatForm();
+    } catch (err) {
+      toast({ title: 'Erro ao salvar categoria', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+    } finally {
+      setSavingCat(false);
     }
-    setSavingCat(false);
-    closeCatForm();
   };
 
   const handleDeleteCat = async (id: string) => {
-    const result = await deleteCategory(id);
-    if (!result.ok) {
-      toast({ title: 'Não foi possível excluir', description: result.reason, variant: 'destructive' });
-    } else {
-      toast({ title: 'Categoria removida' });
+    try {
+      const result = await deleteCategory(id);
+      if (!result.ok) {
+        toast({ title: 'Não foi possível excluir', description: result.reason, variant: 'destructive' });
+      } else {
+        toast({ title: 'Categoria removida' });
+      }
+    } catch (err) {
+      toast({ title: 'Erro ao excluir categoria', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
     }
     setConfirmDeleteCat(null);
   };
@@ -162,19 +171,30 @@ export default function AdminProducts() {
       options: editingId ? (products.find((p) => p.id === editingId)?.options ?? []) : [],
     };
 
-    if (editingId) {
-      await updateProduct(editingId, data);
-      toast({ title: 'Produto atualizado!' });
-    } else {
-      await addProduct({ ...data, id: crypto.randomUUID() });
-      toast({ title: 'Produto adicionado!' });
+    try {
+      if (editingId) {
+        await updateProduct(editingId, data);
+        toast({ title: 'Produto atualizado!' });
+      } else {
+        await addProduct({ ...data, id: crypto.randomUUID() });
+        toast({ title: 'Produto adicionado!' });
+      }
+      closeForm();
+    } catch (err) {
+      toast({ title: 'Erro ao salvar produto', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false); closeForm();
   };
 
   const handleDelete = async (id: string) => {
-    await deleteProduct(id); setConfirmDelete(null);
-    toast({ title: 'Produto removido' });
+    try {
+      await deleteProduct(id);
+      toast({ title: 'Produto removido' });
+    } catch (err) {
+      toast({ title: 'Erro ao excluir produto', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+    }
+    setConfirmDelete(null);
   };
 
   const showProductForm = adding || editingId !== null;

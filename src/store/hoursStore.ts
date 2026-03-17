@@ -18,6 +18,7 @@ const toDB = (h: BusinessHours) => ({
 
 interface HoursState {
   hours: BusinessHours[];
+  loadError: boolean;
   updateHours: (id: string, updates: Partial<BusinessHours>) => Promise<void>;
   initFromDB: () => Promise<void>;
 }
@@ -26,19 +27,28 @@ export const useHoursStore = create<HoursState>()(
   persist(
     (set, get) => ({
       hours: defaultHours,
+      loadError: false,
 
       initFromDB: async () => {
         try {
           const { data } = await supabase.from('business_hours').select('*').order('day_of_week');
           if (data && data.length > 0) set({ hours: data.map(fromDB) });
           else await supabase.from('business_hours').upsert(get().hours.map(toDB));
-        } catch { console.warn('[hours] offline'); }
+        } catch (err) { console.warn('[hours] offline', err); set({ loadError: true }); }
       },
 
       updateHours: async (id, updates) => {
+        const prev = get().hours;
         set((s) => ({ hours: s.hours.map((h) => h.id === id ? { ...h, ...updates } : h) }));
         const updated = get().hours.find((h) => h.id === id);
-        if (updated) { try { await supabase.from('business_hours').update(toDB(updated)).eq('id', id); } catch { /**/ } }
+        if (updated) {
+          try {
+            await supabase.from('business_hours').update(toDB(updated)).eq('id', id);
+          } catch (err) {
+            set({ hours: prev });
+            throw err;
+          }
+        }
       },
     }),
     { name: 'taty-hours' }

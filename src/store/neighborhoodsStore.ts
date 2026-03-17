@@ -27,26 +27,50 @@ export const useNeighborhoodsStore = create<NeighborhoodsState>()(
       },
 
       addNeighborhood: async (n) => {
+        const prev = get().neighborhoods;
         set((s) => ({ neighborhoods: [...s.neighborhoods, n] }));
-        try { await supabase.from('neighborhoods').insert(n); } catch { /**/ }
+        try {
+          await supabase.from('neighborhoods').insert(n);
+        } catch (err) {
+          set({ neighborhoods: prev });
+          throw err;
+        }
       },
 
       updateNeighborhood: async (id, updates) => {
+        const prev = get().neighborhoods;
         set((s) => ({ neighborhoods: s.neighborhoods.map((n) => n.id === id ? { ...n, ...updates } : n) }));
-        try { await supabase.from('neighborhoods').update(updates).eq('id', id); } catch { /**/ }
+        try {
+          await supabase.from('neighborhoods').update(updates).eq('id', id);
+        } catch (err) {
+          set({ neighborhoods: prev });
+          throw err;
+        }
       },
 
       deleteNeighborhood: async (id) => {
+        const prev = get().neighborhoods;
         set((s) => ({ neighborhoods: s.neighborhoods.filter((n) => n.id !== id) }));
-        try { await supabase.from('neighborhoods').delete().eq('id', id); } catch { /**/ }
+        try {
+          await supabase.from('neighborhoods').delete().eq('id', id);
+        } catch (err) {
+          set({ neighborhoods: prev });
+          throw err;
+        }
       },
 
       toggleActive: async (id) => {
         const n = get().neighborhoods.find((x) => x.id === id);
         if (!n) return;
+        const prev = get().neighborhoods;
         const next = !n.active;
         set((s) => ({ neighborhoods: s.neighborhoods.map((x) => x.id === id ? { ...x, active: next } : x) }));
-        try { await supabase.from('neighborhoods').update({ active: next }).eq('id', id); } catch { /**/ }
+        try {
+          await supabase.from('neighborhoods').update({ active: next }).eq('id', id);
+        } catch (err) {
+          set({ neighborhoods: prev });
+          throw err;
+        }
       },
     }),
     { name: 'taty-neighborhoods' }

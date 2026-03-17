@@ -33,10 +33,18 @@ export default function AdminConfig() {
       return;
     }
     setSaving(true);
-    await updateConfig(form);
-    await new Promise((r) => setTimeout(r, 250));
-    setSaving(false);
-    toast({ title: 'Configurações salvas!' });
+    try {
+      await updateConfig(form);
+      toast({ title: 'Configurações salvas!' });
+    } catch (err) {
+      toast({
+        title: 'Erro ao salvar configurações',
+        description: 'Verifique sua conexão e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inputCls =

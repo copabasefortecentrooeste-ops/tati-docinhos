@@ -16,10 +16,22 @@ export default function AdminOrders() {
 
   const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
 
+  const handleStatusChange = async (id: string, newStatus: OrderStatus) => {
+    try {
+      await updateStatus(id, newStatus);
+    } catch (err) {
+      toast({
+        title: 'Erro ao atualizar status',
+        description: 'O status não foi alterado. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const advanceStatus = (orderId: string, current: OrderStatus) => {
     const idx = statusFlow.indexOf(current);
     if (idx < statusFlow.length - 1) {
-      updateStatus(orderId, statusFlow[idx + 1]);
+      handleStatusChange(orderId, statusFlow[idx + 1]);
       toast({ title: `Status: "${ORDER_STATUS_LABELS[statusFlow[idx + 1]].label}"` });
     }
   };
@@ -137,7 +149,7 @@ export default function AdminOrders() {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
-                    updateStatus(order.id, 'cancelled');
+                    handleStatusChange(order.id, 'cancelled');
                     toast({ title: 'Pedido cancelado' });
                   }}
                   className="rounded-button border border-destructive px-3 py-1.5 text-xs font-medium text-destructive"

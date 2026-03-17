@@ -41,27 +41,53 @@ export const useCouponsStore = create<CouponsState>()(
       },
 
       addCoupon: async (c) => {
+        const prev = get().coupons;
         set((s) => ({ coupons: [...s.coupons, c] }));
-        try { await supabase.from('coupons').insert(toDB(c)); } catch { /**/ }
+        try {
+          await supabase.from('coupons').insert(toDB(c));
+        } catch (err) {
+          set({ coupons: prev });
+          throw err;
+        }
       },
 
       updateCoupon: async (id, updates) => {
+        const prev = get().coupons;
         set((s) => ({ coupons: s.coupons.map((c) => c.id === id ? { ...c, ...updates } : c) }));
         const updated = get().coupons.find((c) => c.id === id);
-        if (updated) { try { await supabase.from('coupons').update(toDB(updated)).eq('id', id); } catch { /**/ } }
+        if (updated) {
+          try {
+            await supabase.from('coupons').update(toDB(updated)).eq('id', id);
+          } catch (err) {
+            set({ coupons: prev });
+            throw err;
+          }
+        }
       },
 
       deleteCoupon: async (id) => {
+        const prev = get().coupons;
         set((s) => ({ coupons: s.coupons.filter((c) => c.id !== id) }));
-        try { await supabase.from('coupons').delete().eq('id', id); } catch { /**/ }
+        try {
+          await supabase.from('coupons').delete().eq('id', id);
+        } catch (err) {
+          set({ coupons: prev });
+          throw err;
+        }
       },
 
       toggleActive: async (id) => {
         const c = get().coupons.find((x) => x.id === id);
         if (!c) return;
+        const prev = get().coupons;
         const next = !c.active;
         set((s) => ({ coupons: s.coupons.map((x) => x.id === id ? { ...x, active: next } : x) }));
-        try { await supabase.from('coupons').update({ active: next }).eq('id', id); } catch { /**/ }
+        try {
+          await supabase.from('coupons').update({ active: next }).eq('id', id);
+        } catch (err) {
+          set({ coupons: prev });
+          throw err;
+        }
       },
     }),
     { name: 'taty-coupons' }

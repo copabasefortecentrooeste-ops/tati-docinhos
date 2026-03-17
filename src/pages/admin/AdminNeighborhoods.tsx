@@ -25,25 +25,33 @@ export default function AdminNeighborhoods() {
   };
   const closeForm = () => { setAdding(false); setEditingId(null); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) { toast({ title: 'Nome obrigatório', variant: 'destructive' }); return; }
     const fee = parseFloat(form.fee);
     if (isNaN(fee) || fee < 0) { toast({ title: 'Taxa inválida', variant: 'destructive' }); return; }
 
-    if (editingId) {
-      updateNeighborhood(editingId, { name: form.name.trim(), fee });
-      toast({ title: 'Bairro atualizado!' });
-    } else {
-      addNeighborhood({ id: crypto.randomUUID(), name: form.name.trim(), fee, active: true });
-      toast({ title: 'Bairro adicionado!' });
+    try {
+      if (editingId) {
+        await updateNeighborhood(editingId, { name: form.name.trim(), fee });
+        toast({ title: 'Bairro atualizado!' });
+      } else {
+        await addNeighborhood({ id: crypto.randomUUID(), name: form.name.trim(), fee, active: true });
+        toast({ title: 'Bairro adicionado!' });
+      }
+      closeForm();
+    } catch (err) {
+      toast({ title: 'Erro ao salvar bairro', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
     }
-    closeForm();
   };
 
-  const handleDelete = (id: string) => {
-    deleteNeighborhood(id);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteNeighborhood(id);
+      toast({ title: 'Bairro removido' });
+    } catch (err) {
+      toast({ title: 'Erro ao excluir bairro', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+    }
     setConfirmDelete(null);
-    toast({ title: 'Bairro removido' });
   };
 
   const inputCls =
@@ -101,7 +109,13 @@ export default function AdminNeighborhoods() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => toggleActive(n.id)}
+                  onClick={async () => {
+                    try {
+                      await toggleActive(n.id);
+                    } catch (err) {
+                      toast({ title: 'Erro ao alterar status do bairro', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+                    }
+                  }}
                   title={n.active ? 'Clique para desativar' : 'Clique para ativar'}
                   className={`h-2.5 w-2.5 rounded-full transition-colors ${n.active ? 'bg-green-500' : 'bg-red-400'}`}
                 />

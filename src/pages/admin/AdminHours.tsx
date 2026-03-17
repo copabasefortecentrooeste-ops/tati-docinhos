@@ -29,10 +29,18 @@ export default function AdminHours() {
 
   const handleSave = async () => {
     setSaving(true);
-    draft.forEach((h) => updateHours(h.id, h));
-    await new Promise((r) => setTimeout(r, 250));
-    setSaving(false);
-    toast({ title: 'Horários salvos!' });
+    try {
+      await Promise.all(draft.map((h) => updateHours(h.id, h)));
+      toast({ title: 'Horários salvos!' });
+    } catch (err) {
+      toast({
+        title: 'Erro ao salvar horários',
+        description: 'Verifique sua conexão e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleManualStatus = async (value: ManualStoreStatus) => {

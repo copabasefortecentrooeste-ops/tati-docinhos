@@ -55,6 +55,7 @@ const toDB = (o: Order) => ({
 // ── Store ──────────────────────────────────────────────────
 interface OrderState {
   orders: Order[];
+  loadError: boolean;
   addOrder: (order: Order) => Promise<void>;
   updateStatus: (id: string, status: Order['status']) => Promise<void>;
   getOrder: (code: string, phone: string) => Order | undefined;
@@ -67,6 +68,7 @@ export const useOrderStore = create<OrderState>()(
   persist(
     (set, get) => ({
       orders: [],
+      loadError: false,
 
       initFromDB: async () => {
         try {
@@ -75,17 +77,23 @@ export const useOrderStore = create<OrderState>()(
             .select('*')
             .order('created_at', { ascending: false });
           if (data) set({ orders: data.map(fromDB) });
-        } catch { console.warn('[orders] offline'); }
+        } catch (err) { console.warn('[orders] offline', err); set({ loadError: true }); }
       },
 
       addOrder: async (order) => {
         set((s) => ({ orders: [order, ...s.orders] }));
-        try { await supabase.from('orders').insert(toDB(order)); } catch { /**/ }
+        try { await supabase.from('orders').insert(toDB(order)); } catch (err) { throw err; }
       },
 
       updateStatus: async (id, status) => {
+        const prevOrders = get().orders;
         set((s) => ({ orders: s.orders.map((o) => o.id === id ? { ...o, status } : o) }));
-        try { await supabase.from('orders').update({ status }).eq('id', id); } catch { /**/ }
+        try {
+          await supabase.from('orders').update({ status }).eq('id', id);
+        } catch (err) {
+          set({ orders: prevOrders });
+          throw err;
+        }
       },
 
       getOrder: (code, phone) => get().orders.find((o) => o.code === code && o.customer.phone === phone),

@@ -45,6 +45,7 @@ export default function Checkout() {
   const [couponApplied, setCouponApplied] = useState<Coupon | null>(null);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pre-fill from customer profile when it loads
   useEffect(() => {
@@ -93,7 +94,7 @@ export default function Checkout() {
 
   const canSubmit = name.trim() && phone.trim() && (isPickup || (neighborhoodId && address.trim()));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
 
     // Store status validation
@@ -123,6 +124,7 @@ export default function Checkout() {
       }
     }
 
+    setIsSubmitting(true);
     const code = `TD${Date.now().toString(36).toUpperCase().slice(-6)}`;
     const order: Order = {
       id: crypto.randomUUID(),
@@ -153,9 +155,20 @@ export default function Checkout() {
       outsideHours: storeStatus.isOutsideHours,
       createdAt: new Date().toISOString(),
     };
-    addOrder(order);
-    clearCart();
-    navigate(`/confirmacao/${code}`);
+    try {
+      await addOrder(order);
+      clearCart();
+      navigate(`/confirmacao/${code}`);
+    } catch {
+      toast({
+        title: 'Erro ao enviar pedido',
+        description: 'Não foi possível registrar seu pedido. Verifique sua conexão e tente novamente.',
+        variant: 'destructive',
+      });
+      setIsSubmitting(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (items.length === 0) {
@@ -446,10 +459,10 @@ export default function Checkout() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || isSubmitting}
             className="mt-5 w-full rounded-button bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-card transition-opacity disabled:opacity-50"
           >
-            Confirmar Pedido
+            {isSubmitting ? 'Enviando...' : 'Confirmar Pedido'}
           </motion.button>
         </section>
       </div>

@@ -43,6 +43,7 @@ const toDB = (c: StoreConfig) => ({
 
 interface StoreConfigState {
   config: StoreConfig;
+  loadError: boolean;
   updateConfig: (updates: Partial<StoreConfig>) => Promise<void>;
   initFromDB: () => Promise<void>;
 }
@@ -51,24 +52,28 @@ export const useStoreConfigStore = create<StoreConfigState>()(
   persist(
     (set, get) => ({
       config: defaultConfig,
+      loadError: false,
 
       initFromDB: async () => {
         try {
           const { data } = await supabase.from('store_config').select('*').eq('id', 1).maybeSingle();
           if (data) set({ config: fromDB(data) });
           else await supabase.from('store_config').upsert(toDB(get().config));
-        } catch {
-          console.warn('[storeConfig] offline, using local data');
+        } catch (err) {
+          console.warn('[storeConfig] offline, using local data', err);
+          set({ loadError: true });
         }
       },
 
       updateConfig: async (updates) => {
-        const next = { ...get().config, ...updates };
+        const prev = get().config;
+        const next = { ...prev, ...updates };
         set({ config: next });
         try {
           await supabase.from('store_config').upsert(toDB(next));
-        } catch {
-          console.warn('[storeConfig] sync failed, saved locally');
+        } catch (err) {
+          set({ config: prev });
+          throw err;
         }
       },
     }),

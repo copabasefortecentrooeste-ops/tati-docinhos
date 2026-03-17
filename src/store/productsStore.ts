@@ -47,6 +47,7 @@ const catToDB = (c: Category) => ({
 interface ProductsState {
   products: Product[];
   categories: Category[];
+  loadError: boolean;
 
   // Products
   addProduct: (product: Product) => Promise<void>;
@@ -66,6 +67,7 @@ export const useProductsStore = create<ProductsState>()(
     (set, get) => ({
       products: defaultProducts,
       categories: defaultCategories,
+      loadError: false,
 
       // ── Init ──────────────────────────────────────────────
       initFromDB: async () => {
@@ -86,43 +88,79 @@ export const useProductsStore = create<ProductsState>()(
           } else {
             await supabase.from('products').upsert(get().products.map(prodToDB));
           }
-        } catch {
-          console.warn('[products] offline, using local data');
+        } catch (err) {
+          console.warn('[products] offline, using local data', err);
+          set({ loadError: true });
         }
       },
 
       // ── Product CRUD ──────────────────────────────────────
       addProduct: async (product) => {
+        const prevProducts = get().products;
+        const prevCategories = get().categories;
         set((s) => ({ products: [...s.products, product] }));
-        try { await supabase.from('products').insert(prodToDB(product)); } catch { /**/ }
+        try {
+          await supabase.from('products').insert(prodToDB(product));
+        } catch (err) {
+          set({ products: prevProducts, categories: prevCategories });
+          throw err;
+        }
       },
 
       updateProduct: async (id, updates) => {
+        const prevProducts = get().products;
+        const prevCategories = get().categories;
         set((s) => ({ products: s.products.map((p) => p.id === id ? { ...p, ...updates } : p) }));
         const updated = get().products.find((p) => p.id === id);
         if (updated) {
-          try { await supabase.from('products').update(prodToDB(updated)).eq('id', id); } catch { /**/ }
+          try {
+            await supabase.from('products').update(prodToDB(updated)).eq('id', id);
+          } catch (err) {
+            set({ products: prevProducts, categories: prevCategories });
+            throw err;
+          }
         }
       },
 
       deleteProduct: async (id) => {
+        const prevProducts = get().products;
+        const prevCategories = get().categories;
         set((s) => ({ products: s.products.filter((p) => p.id !== id) }));
-        try { await supabase.from('products').delete().eq('id', id); } catch { /**/ }
+        try {
+          await supabase.from('products').delete().eq('id', id);
+        } catch (err) {
+          set({ products: prevProducts, categories: prevCategories });
+          throw err;
+        }
       },
 
       // ── Category CRUD ─────────────────────────────────────
       addCategory: async (category) => {
+        const prevProducts = get().products;
+        const prevCategories = get().categories;
         set((s) => ({ categories: [...s.categories, category] }));
-        try { await supabase.from('categories').insert(catToDB(category)); } catch { /**/ }
+        try {
+          await supabase.from('categories').insert(catToDB(category));
+        } catch (err) {
+          set({ products: prevProducts, categories: prevCategories });
+          throw err;
+        }
       },
 
       updateCategory: async (id, updates) => {
+        const prevProducts = get().products;
+        const prevCategories = get().categories;
         set((s) => ({
           categories: s.categories.map((c) => c.id === id ? { ...c, ...updates } : c),
         }));
         const updated = get().categories.find((c) => c.id === id);
         if (updated) {
-          try { await supabase.from('categories').update(catToDB(updated)).eq('id', id); } catch { /**/ }
+          try {
+            await supabase.from('categories').update(catToDB(updated)).eq('id', id);
+          } catch (err) {
+            set({ products: prevProducts, categories: prevCategories });
+            throw err;
+          }
         }
       },
 
@@ -131,8 +169,15 @@ export const useProductsStore = create<ProductsState>()(
         if (hasProducts) {
           return { ok: false, reason: 'Existem produtos vinculados a esta categoria. Remova ou mova os produtos primeiro.' };
         }
+        const prevProducts = get().products;
+        const prevCategories = get().categories;
         set((s) => ({ categories: s.categories.filter((c) => c.id !== id) }));
-        try { await supabase.from('categories').delete().eq('id', id); } catch { /**/ }
+        try {
+          await supabase.from('categories').delete().eq('id', id);
+        } catch (err) {
+          set({ products: prevProducts, categories: prevCategories });
+          throw err;
+        }
         return { ok: true };
       },
     }),

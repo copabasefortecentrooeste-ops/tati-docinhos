@@ -29,7 +29,7 @@ export default function AdminCoupons() {
   const openEdit = (c: Coupon) => { setForm(couponToForm(c)); setAdding(false); setEditingId(c.id); };
   const closeForm = () => { setAdding(false); setEditingId(null); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.code.trim()) { toast({ title: 'Código obrigatório', variant: 'destructive' }); return; }
     const value = parseFloat(form.value);
     if (isNaN(value) || value <= 0) { toast({ title: 'Valor inválido', variant: 'destructive' }); return; }
@@ -43,20 +43,28 @@ export default function AdminCoupons() {
       ...(minOrder !== undefined ? { minOrder } : {}),
     };
 
-    if (editingId) {
-      updateCoupon(editingId, data);
-      toast({ title: 'Cupom atualizado!' });
-    } else {
-      addCoupon({ ...data, id: crypto.randomUUID() });
-      toast({ title: 'Cupom adicionado!' });
+    try {
+      if (editingId) {
+        await updateCoupon(editingId, data);
+        toast({ title: 'Cupom atualizado!' });
+      } else {
+        await addCoupon({ ...data, id: crypto.randomUUID() });
+        toast({ title: 'Cupom adicionado!' });
+      }
+      closeForm();
+    } catch (err) {
+      toast({ title: 'Erro ao salvar cupom', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
     }
-    closeForm();
   };
 
-  const handleDelete = (id: string) => {
-    deleteCoupon(id);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCoupon(id);
+      toast({ title: 'Cupom removido' });
+    } catch (err) {
+      toast({ title: 'Erro ao excluir cupom', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+    }
     setConfirmDelete(null);
-    toast({ title: 'Cupom removido' });
   };
 
   const inputCls =
@@ -157,7 +165,13 @@ export default function AdminCoupons() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => toggleActive(c.id)}
+                  onClick={async () => {
+                    try {
+                      await toggleActive(c.id);
+                    } catch (err) {
+                      toast({ title: 'Erro ao alterar status do cupom', description: 'Verifique sua conexão e tente novamente.', variant: 'destructive' });
+                    }
+                  }}
                   className={`rounded-button px-2 py-0.5 text-[10px] font-medium transition-colors ${
                     c.active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
                   }`}
