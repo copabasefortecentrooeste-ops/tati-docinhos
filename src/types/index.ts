@@ -24,6 +24,12 @@ export interface Product {
   options: ProductOption[];
   featured: boolean;
   bestSeller: boolean;
+  /** false = produto indisponível no momento (exibe CTA WhatsApp) */
+  inStock?: boolean;
+  /** null = estoque ilimitado */
+  stockQty?: number | null;
+  /** false = produto desativado no cardápio */
+  active?: boolean;
 }
 
 export type OrderStatus = 'received' | 'analyzing' | 'production' | 'delivery' | 'delivered' | 'cancelled';

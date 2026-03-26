@@ -24,6 +24,7 @@ import AdminNeighborhoods from "./pages/admin/AdminNeighborhoods";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminHours from "./pages/admin/AdminHours";
 import AdminConfig from "./pages/admin/AdminConfig";
+import AdminWhatsApp from "./pages/admin/AdminWhatsApp";
 import NotFound from "./pages/NotFound";
 import { useInitApp } from "@/hooks/useInitApp";
 
@@ -53,6 +54,7 @@ function AppInner() {
           <Route path="cupons" element={<AdminCoupons />} />
           <Route path="horarios" element={<AdminHours />} />
           <Route path="config" element={<AdminConfig />} />
+          <Route path="whatsapp" element={<AdminWhatsApp />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

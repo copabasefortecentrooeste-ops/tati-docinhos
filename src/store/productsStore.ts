@@ -16,6 +16,9 @@ const prodFromDB = (r: Record<string, unknown>): Product => ({
   options: (r.options as Product['options']) ?? [],
   featured: (r.featured as boolean) ?? false,
   bestSeller: (r.best_seller as boolean) ?? false,
+  inStock: r.in_stock !== undefined ? (r.in_stock as boolean) : true,
+  stockQty: r.stock_qty as number | null | undefined,
+  active: r.active !== undefined ? (r.active as boolean) : true,
 });
 
 const prodToDB = (p: Product) => ({
@@ -29,6 +32,9 @@ const prodToDB = (p: Product) => ({
   options: p.options,
   featured: p.featured,
   best_seller: p.bestSeller,
+  in_stock: p.inStock ?? true,
+  stock_qty: p.stockQty ?? null,
+  active: p.active ?? true,
 });
 
 const catFromDB = (r: Record<string, unknown>): Category => ({

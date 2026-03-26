@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Order } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { whatsAppService, ORDER_STATUS_TO_WA_EVENT } from '@/lib/whatsapp';
+import { formatPrice } from '@/lib/format';
 
 // ── Mappers ────────────────────────────────────────────────
 const fromDB = (r: Record<string, unknown>): Order => ({
@@ -141,6 +143,26 @@ export const useOrderStore = create<OrderState>()(
         set((s) => ({ orders: s.orders.map((o) => (o.id === id ? { ...o, status } : o)) }));
         try {
           await supabase.from('orders').update({ status }).eq('id', id);
+
+          // Fire WhatsApp notification (fire-and-forget — never blocks the UI)
+          const order = get().orders.find((o) => o.id === id);
+          const eventKey = ORDER_STATUS_TO_WA_EVENT[status];
+          if (order && eventKey && order.customer.phone) {
+            whatsAppService.sendForOrder({
+              eventKey,
+              phone: order.customer.phone,
+              variables: {
+                nome:          order.customer.name,
+                codigo:        order.code,
+                loja:          'Loja',
+                status,
+                valor_total:   formatPrice(order.total),
+                link_pedido:   `${window.location.origin}/acompanhar`,
+              },
+              orderId:   order.id,
+              orderCode: order.code,
+            }).catch(console.warn);
+          }
         } catch (err) {
           set({ orders: prevOrders });
           throw err;

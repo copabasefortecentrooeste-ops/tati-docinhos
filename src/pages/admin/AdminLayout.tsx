@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, MapPin, Tag, Clock, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, MapPin, Tag, Clock, Settings, LogOut, MessageCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +11,7 @@ const navItems = [
   { path: '/admin/bairros', icon: MapPin, label: 'Bairros' },
   { path: '/admin/cupons', icon: Tag, label: 'Cupons' },
   { path: '/admin/horarios', icon: Clock, label: 'Horários' },
+  { path: '/admin/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
   { path: '/admin/config', icon: Settings, label: 'Config' },
 ];
 
