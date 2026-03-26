@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Phone, Instagram, MapPin, Key, FileText, Upload, Save, Store, Truck, ShieldAlert, MessageSquare } from 'lucide-react';
+import { Phone, Instagram, MapPin, Key, FileText, Upload, Save, Store, Truck, ShieldAlert, MessageSquare, Copy, Check, Share2 } from 'lucide-react';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { compressImage } from '@/lib/imageUtils';
 import { mapSupabaseError } from '@/lib/supabaseError';
@@ -11,6 +11,7 @@ export default function AdminConfig() {
   const [form, setForm] = useState({ ...config });
   const [logoPreview, setLogoPreview] = useState<string>(config.logo || '');
   const [saving, setSaving] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -262,6 +263,41 @@ export default function AdminConfig() {
           />
         </div>
       </div>
+
+      {/* Shareable catalog link */}
+      {(() => {
+        const slug = config.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'loja';
+        const shareUrl = `${window.location.origin}/t/${slug}/cardapio`;
+        const handleCopyLink = async () => {
+          try { await navigator.clipboard.writeText(shareUrl); } catch { /* ignore */ }
+          setLinkCopied(true);
+          setTimeout(() => setLinkCopied(false), 2000);
+        };
+        return (
+          <div className="mt-6 rounded-card border border-border bg-card p-4 shadow-soft">
+            <p className="mb-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Share2 size={13} /> Link Compartilhável do Cardápio
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={shareUrl}
+                className="min-w-0 flex-1 rounded-button border border-input bg-muted px-3 py-2 text-xs text-muted-foreground"
+              />
+              <button
+                onClick={handleCopyLink}
+                className="flex shrink-0 items-center gap-1.5 rounded-button border border-border bg-background px-3 py-2 text-xs font-medium hover:bg-muted"
+              >
+                {linkCopied ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
+                {linkCopied ? 'Copiado!' : 'Copiar'}
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Compartilhe este link com clientes para mostrar o cardápio com QR Code.
+            </p>
+          </div>
+        );
+      })()}
 
       <button
         onClick={handleSave}

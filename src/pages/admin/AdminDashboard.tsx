@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Clock } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Clock, MessageCircle, CheckCircle, XCircle, Link } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
 import { formatPrice } from '@/lib/format';
 import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
 import { isTodayBR } from '@/lib/dateTime';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminDashboard() {
   const orders = useOrderStore((s) => s.orders);
@@ -22,6 +23,27 @@ export default function AdminDashboard() {
 
     return { todayCount: todayOrders.length, revenue, avg, byStatus, total: orders.length };
   }, [orders]);
+
+  // WhatsApp metrics today
+  const [waStats, setWaStats] = useState({ sent: 0, failed: 0, fallback: 0 });
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    supabase
+      .from('whatsapp_message_logs')
+      .select('status')
+      .gte('created_at', today.toISOString())
+      .then(({ data }) => {
+        if (!data) return;
+        const counts = { sent: 0, failed: 0, fallback: 0 };
+        data.forEach((r) => {
+          if (r.status === 'sent')     counts.sent++;
+          if (r.status === 'failed')   counts.failed++;
+          if (r.status === 'fallback') counts.fallback++;
+        });
+        setWaStats(counts);
+      });
+  }, []);
 
   const cards = [
     { label: 'Pedidos Hoje', value: stats.todayCount, icon: ShoppingBag, color: 'text-primary' },
@@ -65,6 +87,34 @@ export default function AdminDashboard() {
               {label}: {stats.byStatus[key] || 0}
             </span>
           ))}
+        </div>
+      </div>
+
+      {/* WhatsApp metrics */}
+      <div className="mt-8">
+        <h2 className="label-caps text-muted-foreground">WhatsApp Hoje</h2>
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="flex items-center gap-3 rounded-card border border-border bg-card p-3 shadow-soft">
+            <CheckCircle size={18} className="shrink-0 text-green-600" />
+            <div>
+              <p className="text-xs text-muted-foreground">Enviadas</p>
+              <p className="tabular-nums text-lg font-bold text-foreground">{waStats.sent}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-card border border-border bg-card p-3 shadow-soft">
+            <Link size={18} className="shrink-0 text-blue-500" />
+            <div>
+              <p className="text-xs text-muted-foreground">Link (fallback)</p>
+              <p className="tabular-nums text-lg font-bold text-foreground">{waStats.fallback}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-card border border-border bg-card p-3 shadow-soft">
+            <XCircle size={18} className="shrink-0 text-red-500" />
+            <div>
+              <p className="text-xs text-muted-foreground">Falhas</p>
+              <p className="tabular-nums text-lg font-bold text-foreground">{waStats.failed}</p>
+            </div>
+          </div>
         </div>
       </div>
 

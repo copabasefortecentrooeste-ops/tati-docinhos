@@ -7,12 +7,15 @@ import { mapSupabaseError } from '@/lib/supabaseError';
 import { formatDatetimeBR } from '@/lib/dateTime';
 import type { OrderStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
-import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, Printer } from 'lucide-react';
+import { useStoreConfigStore } from '@/store/storeConfigStore';
+import { printOrder } from '@/lib/printOrder';
 
 const statusFlow: OrderStatus[] = ['received', 'analyzing', 'production', 'delivery', 'delivered'];
 
 export default function AdminOrders() {
   const { orders, loading, loadError, updateStatus, initFromDB, subscribeRealtime } = useOrderStore();
+  const { config: storeConfig } = useStoreConfigStore();
   const [filter, setFilter] = useState<string>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [realtimeActive, setRealtimeActive] = useState(false);
@@ -202,7 +205,7 @@ export default function AdminOrders() {
             </div>
 
             {/* Actions */}
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               {order.status !== 'delivered' && order.status !== 'cancelled' && (
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -224,6 +227,14 @@ export default function AdminOrders() {
                   Cancelar
                 </motion.button>
               )}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => printOrder(order, storeConfig.name)}
+                className="ml-auto flex items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+              >
+                <Printer size={12} />
+                Imprimir
+              </motion.button>
             </div>
 
             <p className="mt-2 text-[10px] text-muted-foreground">

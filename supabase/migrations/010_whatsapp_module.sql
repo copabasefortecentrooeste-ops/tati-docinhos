@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_automation_rules (
 CREATE TABLE IF NOT EXISTS whatsapp_message_logs (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id        text        NOT NULL DEFAULT 'default',
-  order_id        uuid        REFERENCES orders(id) ON DELETE SET NULL,
+  order_id        text,       -- text (not uuid) – matches orders.id type; no FK
   order_code      text,
   recipient_phone text        NOT NULL,
   event_key       text,
@@ -84,22 +84,30 @@ ALTER TABLE whatsapp_templates       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_automation_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_message_logs    ENABLE ROW LEVEL SECURITY;
 
--- Admin-only write; no public read
-CREATE POLICY "admin_all_wa_connections"
-  ON whatsapp_connections FOR ALL
-  USING (auth.jwt() ->> 'role' = 'admin' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+-- Admin-only write; no public read (idempotent)
+DO $$ BEGIN
+  CREATE POLICY "admin_all_wa_connections"
+    ON whatsapp_connections FOR ALL
+    USING (auth.jwt() ->> 'role' = 'admin' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY "admin_all_wa_templates"
-  ON whatsapp_templates FOR ALL
-  USING (auth.jwt() ->> 'role' = 'admin' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+DO $$ BEGIN
+  CREATE POLICY "admin_all_wa_templates"
+    ON whatsapp_templates FOR ALL
+    USING (auth.jwt() ->> 'role' = 'admin' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY "admin_all_wa_rules"
-  ON whatsapp_automation_rules FOR ALL
-  USING (auth.jwt() ->> 'role' = 'admin' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+DO $$ BEGIN
+  CREATE POLICY "admin_all_wa_rules"
+    ON whatsapp_automation_rules FOR ALL
+    USING (auth.jwt() ->> 'role' = 'admin' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY "admin_all_wa_logs"
-  ON whatsapp_message_logs FOR ALL
-  USING (auth.jwt() ->> 'role' = 'admin' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+DO $$ BEGIN
+  CREATE POLICY "admin_all_wa_logs"
+    ON whatsapp_message_logs FOR ALL
+    USING (auth.jwt() ->> 'role' = 'admin' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── Seed: default connection placeholder ────────────────────
 INSERT INTO whatsapp_connections (store_id) VALUES ('default')

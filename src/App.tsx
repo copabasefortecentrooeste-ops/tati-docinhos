@@ -25,6 +25,8 @@ import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminHours from "./pages/admin/AdminHours";
 import AdminConfig from "./pages/admin/AdminConfig";
 import AdminWhatsApp from "./pages/admin/AdminWhatsApp";
+import StoreLanding from "./pages/StoreLanding";
+import ShareableCatalog from "./pages/ShareableCatalog";
 import NotFound from "./pages/NotFound";
 import { useInitApp } from "@/hooks/useInitApp";
 
@@ -45,6 +47,8 @@ function AppInner() {
         <Route path="/acompanhar" element={<OrderTracking />} />
         <Route path="/login" element={<CustomerLogin />} />
         <Route path="/minha-conta" element={<CustomerProfile />} />
+        <Route path="/t/:slug" element={<StoreLanding />} />
+        <Route path="/t/:slug/cardapio" element={<ShareableCatalog />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
