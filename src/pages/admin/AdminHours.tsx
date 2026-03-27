@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Save, Clock, CheckCircle, PauseCircle, XCircle, AlertTriangle, WifiOff, RefreshCw } from 'lucide-react';
 import { useHoursStore } from '@/store/hoursStore';
+import { useStoreCtx } from '@/contexts/StoreContext';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { getStoreStatus, getTodayHours } from '@/lib/storeStatus';
 import { currentTimeBR } from '@/lib/dateTime';
@@ -20,13 +21,14 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AdminHours() {
   const { hours, loadError, initFromDB, updateHours } = useHoursStore();
   const { config, updateConfig } = useStoreConfigStore();
+  const { storeId } = useStoreCtx();
   const [draft, setDraft] = useState(() => hours.map((h) => ({ ...h })));
   const [saving, setSaving] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {
     setRetrying(true);
-    await initFromDB();
+    await initFromDB(storeId || undefined);
     setRetrying(false);
   };
 

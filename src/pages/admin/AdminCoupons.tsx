@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, Save, X, WifiOff, RefreshCw } from 'lucide-react';
 import { useCouponsStore } from '@/store/couponsStore';
+import { useStoreCtx } from '@/contexts/StoreContext';
 import { formatPrice } from '@/lib/format';
 import { mapSupabaseError } from '@/lib/supabaseError';
 import { inputCls } from '@/lib/adminStyles';
@@ -22,11 +23,12 @@ function couponToForm(c: Coupon): FormState {
 
 export default function AdminCoupons() {
   const { coupons, loadError, initFromDB, addCoupon, updateCoupon, deleteCoupon, toggleActive } = useCouponsStore();
+  const { storeId } = useStoreCtx();
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {
     setRetrying(true);
-    await initFromDB();
+    await initFromDB(storeId || undefined);
     setRetrying(false);
   };
   const [adding, setAdding] = useState(false);

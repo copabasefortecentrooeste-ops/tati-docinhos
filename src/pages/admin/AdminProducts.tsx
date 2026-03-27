@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Plus, Pencil, Trash2, X, Save, Upload, Star, TrendingUp, ChevronDown, ChevronUp, Tag, WifiOff, RefreshCw, BarChart2 } from 'lucide-react';
 import { useProductsStore } from '@/store/productsStore';
+import { useStoreCtx } from '@/contexts/StoreContext';
 import { compressImage } from '@/lib/imageUtils';
 import { uploadProductImage } from '@/lib/storageUtils';
 import { formatPrice } from '@/lib/format';
@@ -56,11 +57,12 @@ export default function AdminProducts() {
     addProduct, updateProduct, deleteProduct,
     addCategory, updateCategory, deleteCategory,
   } = useProductsStore();
+  const { storeId } = useStoreCtx();
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {
     setRetrying(true);
-    await initFromDB();
+    await initFromDB(storeId || undefined);
     setRetrying(false);
   };
 

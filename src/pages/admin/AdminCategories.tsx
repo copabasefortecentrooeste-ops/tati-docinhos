@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, Save, X, WifiOff, RefreshCw, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 import { useProductsStore } from '@/store/productsStore';
+import { useStoreCtx } from '@/contexts/StoreContext';
 import { supabase } from '@/lib/supabase';
 import { mapSupabaseError } from '@/lib/supabaseError';
 import { inputCls } from '@/lib/adminStyles';
@@ -25,6 +26,7 @@ type DeleteDialog =
 export default function AdminCategories() {
   const { categories, products, loadError, initFromDB, addCategory, updateCategory, deleteCategory } =
     useProductsStore();
+  const { storeId } = useStoreCtx();
   const [retrying, setRetrying] = useState(false);
 
   // Sorted categories
@@ -32,7 +34,7 @@ export default function AdminCategories() {
 
   const handleRetry = async () => {
     setRetrying(true);
-    await initFromDB();
+    await initFromDB(storeId || undefined);
     setRetrying(false);
   };
 
@@ -140,7 +142,7 @@ export default function AdminCategories() {
           .eq('category_id', deleteDialog.id);
         if (error) throw error;
         // Refresh store products after move
-        await initFromDB();
+        await initFromDB(storeId || undefined);
       }
 
       const result = await deleteCategory(deleteDialog.id);

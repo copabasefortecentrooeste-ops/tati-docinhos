@@ -10,12 +10,14 @@ import { toast } from '@/hooks/use-toast';
 import { RefreshCw, Wifi, WifiOff, Printer } from 'lucide-react';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { printOrder } from '@/lib/printOrder';
+import { useStoreCtx } from '@/contexts/StoreContext';
 
 const statusFlow: OrderStatus[] = ['received', 'analyzing', 'production', 'delivery', 'delivered'];
 
 export default function AdminOrders() {
   const { orders, loading, loadError, updateStatus, initFromDB, subscribeRealtime } = useOrderStore();
   const { config: storeConfig } = useStoreConfigStore();
+  const { storeId } = useStoreCtx();
   const [filter, setFilter] = useState<string>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [realtimeActive, setRealtimeActive] = useState(false);
@@ -24,13 +26,14 @@ export default function AdminOrders() {
   // Subscribe on mount, unsubscribe on unmount (no leak).
   // INSERT dedup is handled inside subscribeRealtime via id check.
   useEffect(() => {
-    const unsubscribe = subscribeRealtime();
+    if (!storeId) return;
+    const unsubscribe = subscribeRealtime(storeId);
     setRealtimeActive(true);
     return () => {
       unsubscribe();
       setRealtimeActive(false);
     };
-  }, [subscribeRealtime]);
+  }, [subscribeRealtime, storeId]);
 
   const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
 
@@ -53,7 +56,7 @@ export default function AdminOrders() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await initFromDB();
+    await initFromDB(storeId || undefined);
     setRefreshing(false);
     toast({ title: 'Pedidos atualizados' });
   };

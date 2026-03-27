@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, Save, X, WifiOff, RefreshCw } from 'lucide-react';
 import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
+import { useStoreCtx } from '@/contexts/StoreContext';
 import { formatPrice } from '@/lib/format';
 import { mapSupabaseError } from '@/lib/supabaseError';
 import { inputCls } from '@/lib/adminStyles';
@@ -13,11 +14,12 @@ const emptyForm = (): FormState => ({ name: '', fee: '' });
 export default function AdminNeighborhoods() {
   const { neighborhoods, loadError, initFromDB, addNeighborhood, updateNeighborhood, deleteNeighborhood, toggleActive } =
     useNeighborhoodsStore();
+  const { storeId } = useStoreCtx();
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {
     setRetrying(true);
-    await initFromDB();
+    await initFromDB(storeId || undefined);
     setRetrying(false);
   };
 
