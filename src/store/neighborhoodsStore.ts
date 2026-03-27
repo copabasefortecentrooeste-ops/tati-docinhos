@@ -30,12 +30,8 @@ export const useNeighborhoodsStore = create<NeighborhoodsState>()(
         set({ loading: true, loadError: false });
         try {
           const { data } = await supabase.from('neighborhoods').select('*').eq('store_id', sid);
-          if (data && data.length > 0) {
-            set({ neighborhoods: data as DeliveryNeighborhood[], loading: false });
-          } else {
-            await supabase.from('neighborhoods').upsert(get().neighborhoods.map(n => ({ ...n, store_id: sid })));
-            set({ loading: false });
-          }
+          // Nova loja começa vazia — não herdar dados persistidos de outra loja
+          set({ neighborhoods: data && data.length > 0 ? (data as DeliveryNeighborhood[]) : [], loading: false });
         } catch (err) {
           console.warn('[neighborhoods] offline', err);
           set({ loading: false, loadError: true });

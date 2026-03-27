@@ -103,17 +103,9 @@ export const useProductsStore = create<ProductsState>()(
             supabase.from('categories').select('*').eq('store_id', sid),
           ]);
 
-          if (cats && cats.length > 0) {
-            set({ categories: cats.map(catFromDB) });
-          } else {
-            await supabase.from('categories').upsert(get().categories.map(c => catToDB(c, sid)));
-          }
-
-          if (prods && prods.length > 0) {
-            set({ products: prods.map(prodFromDB) });
-          } else {
-            await supabase.from('products').upsert(get().products.map(p => prodToDB(p, sid)));
-          }
+          // Nova loja começa vazia — não herdar dados persistidos de outra loja
+          set({ categories: cats && cats.length > 0 ? cats.map(catFromDB) : [] });
+          set({ products: prods && prods.length > 0 ? prods.map(prodFromDB) : [] });
 
           set({ loading: false });
         } catch (err) {

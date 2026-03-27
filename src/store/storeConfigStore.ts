@@ -77,8 +77,8 @@ export const useStoreConfigStore = create<StoreConfigState>()(
           if (data) {
             set({ config: fromDB(data), loading: false });
           } else {
-            await supabase.from('store_config').upsert(toDB(get().config, sid), { onConflict: 'store_id' });
-            set({ loading: false });
+            // Nova loja sem config — usar defaults limpos, não config persistido de outra loja
+            set({ config: defaultConfig, loading: false });
           }
         } catch (err) {
           console.warn('[storeConfig] offline, using local data', err);

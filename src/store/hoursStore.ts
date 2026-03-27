@@ -39,12 +39,8 @@ export const useHoursStore = create<HoursState>()(
         set({ loading: true, loadError: false });
         try {
           const { data } = await supabase.from('business_hours').select('*').eq('store_id', sid).order('day_of_week');
-          if (data && data.length > 0) {
-            set({ hours: data.map(fromDB), loading: false });
-          } else {
-            await supabase.from('business_hours').upsert(get().hours.map(h => ({ ...toDB(h), store_id: sid })));
-            set({ loading: false });
-          }
+          // Nova loja começa vazia — não herdar dados persistidos de outra loja
+          set({ hours: data && data.length > 0 ? data.map(fromDB) : [], loading: false });
         } catch (err) {
           console.warn('[hours] offline', err);
           set({ loading: false, loadError: true });

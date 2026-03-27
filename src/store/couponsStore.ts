@@ -44,12 +44,8 @@ export const useCouponsStore = create<CouponsState>()(
         set({ loading: true, loadError: false });
         try {
           const { data } = await supabase.from('coupons').select('*').eq('store_id', sid);
-          if (data && data.length > 0) {
-            set({ coupons: data.map(fromDB), loading: false });
-          } else {
-            await supabase.from('coupons').upsert(get().coupons.map(c => ({ ...toDB(c), store_id: sid })));
-            set({ loading: false });
-          }
+          // Nova loja começa vazia — não herdar dados persistidos de outra loja
+          set({ coupons: data && data.length > 0 ? data.map(fromDB) : [], loading: false });
         } catch (err) {
           console.warn('[coupons] offline', err);
           set({ loading: false, loadError: true });
