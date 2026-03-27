@@ -36,9 +36,7 @@ export default function MasterAdminLogin() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm rounded-2xl bg-card p-8 shadow-lg border border-border">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Lock size={20} className="text-primary" />
-          </div>
+          <img src="/logo-fspa.jpg" alt="Faça Seu Pedido Aqui" className="mx-auto mb-4 h-20 w-20 rounded-2xl object-cover shadow-md" />
           <h1 className="font-display text-2xl font-bold">Painel Master</h1>
           <p className="mt-1 text-sm text-muted-foreground">Faça Seu Pedido Aqui</p>
         </div>
