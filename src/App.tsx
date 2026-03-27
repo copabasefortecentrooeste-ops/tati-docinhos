@@ -39,11 +39,19 @@ import { useInitApp } from "@/hooks/useInitApp";
 
 const queryClient = new QueryClient();
 
+// Rotas globais conhecidas (não são slugs de loja)
+const NON_SLUG_SEGMENTS = new Set([
+  'catalogo', 'produto', 'carrinho', 'checkout', 'confirmacao',
+  'acompanhar', 'login', 'minha-conta', 'admin',
+]);
+
 function AppInner() {
   useInitApp();
   const location = useLocation();
-  // Hide global shell on platform landing and master admin routes
-  const hideShell = location.pathname === '/' || location.pathname.startsWith('/admin');
+  const firstSegment = location.pathname.split('/')[1];
+  const isSlugRoute = !!firstSegment && !NON_SLUG_SEGMENTS.has(firstSegment);
+  // Hide global shell on platform landing, admin routes, and per-store slug routes
+  const hideShell = location.pathname === '/' || location.pathname.startsWith('/admin') || isSlugRoute;
   return (
     <>
       {!hideShell && <Header />}
