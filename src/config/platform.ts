@@ -9,8 +9,8 @@ export const PLATFORM = {
   tagline: 'Sistema de pedidos online para delivery e restaurantes',
   logoIcon: '/logo-fspa.jpg',              // ícone quadrado (favicon, avatar)
   logoFull: '/LOGO FAÇA SEU PEDIDO AQUI.jpg', // logo horizontal com texto
-  whatsapp: '5565999999999',               // número no formato internacional sem +
-  whatsappMessage: 'Olá! Quero conhecer o sistema Faça Seu Pedido Aqui.',
+  whatsapp: '5537991720481',               // número no formato internacional sem +
+  whatsappMessage: 'Olá! Quero conhecer a plataforma Faça seu pedido aqui.',
   instagram: '@facaseupedidoaqui',
   email: 'contato@facaseupedidoaqui.com',
 } as const;
@@ -147,6 +147,6 @@ export const LANDING_CONTENT = {
     headline: 'Pronto para organizar seus pedidos?',
     sub: 'Fale com a gente agora e veja como funciona na prática.',
     cta1: { label: 'Falar no WhatsApp', type: 'whatsapp' as const },
-    cta2: { label: 'Solicitar demonstração', type: 'whatsapp' as const, msg: 'Olá! Quero agendar uma demonstração do sistema Faça Seu Pedido Aqui.' },
+    cta2: { label: 'Solicitar demonstração', type: 'whatsapp' as const, msg: 'Olá! Quero agendar uma demonstração da plataforma Faça seu pedido aqui.' },
   },
 };
