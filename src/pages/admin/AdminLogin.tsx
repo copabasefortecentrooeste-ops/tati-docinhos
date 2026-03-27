@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { slug } = useParams<{ slug: string }>();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +43,7 @@ export default function AdminLogin() {
     }
 
     setIsSubmitting(false);
-    navigate('/admin');
+    navigate(`/${slug}/admin`);
   };
 
   return (

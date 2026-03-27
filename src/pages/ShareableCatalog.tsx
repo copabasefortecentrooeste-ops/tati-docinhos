@@ -14,7 +14,7 @@ export default function ShareableCatalog() {
   const [query, setQuery] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const pageUrl = `${window.location.origin}/t/${slug}/cardapio`;
+  const pageUrl = `${window.location.origin}/${slug}/cardapio`;
 
   const filtered = useMemo(() => {
     let list = products;
@@ -46,7 +46,7 @@ export default function ShareableCatalog() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
         <div className="container flex items-center justify-between py-3">
-          <Link to={`/t/${slug}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <Link to={`/${slug}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft size={15} />
             <span className="hidden sm:inline">{config.name}</span>
           </Link>

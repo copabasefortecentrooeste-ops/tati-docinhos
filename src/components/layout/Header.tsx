@@ -11,7 +11,7 @@ export default function Header() {
   const itemCount = useCartStore((s) => s.getItemCount());
   const { session, customer } = useCustomerStore();
 
-  if (location.pathname.startsWith('/admin')) return null;
+  if (location.pathname.includes('/admin')) return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md">

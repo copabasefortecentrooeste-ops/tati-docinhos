@@ -47,10 +47,10 @@ function AppInner() {
         <Route path="/acompanhar" element={<OrderTracking />} />
         <Route path="/login" element={<CustomerLogin />} />
         <Route path="/minha-conta" element={<CustomerProfile />} />
-        <Route path="/t/:slug" element={<StoreLanding />} />
-        <Route path="/t/:slug/cardapio" element={<ShareableCatalog />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/:slug" element={<StoreLanding />} />
+        <Route path="/:slug/cardapio" element={<ShareableCatalog />} />
+        <Route path="/:slug/admin/login" element={<AdminLogin />} />
+        <Route path="/:slug/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="pedidos" element={<AdminOrders />} />
           <Route path="produtos" element={<AdminProducts />} />

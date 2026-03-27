@@ -5,7 +5,8 @@ import { useStoreConfigStore } from '@/store/storeConfigStore';
 export default function Footer() {
   const location = useLocation();
   const { config: storeConfig } = useStoreConfigStore();
-  if (location.pathname.startsWith('/admin')) return null;
+  if (location.pathname.includes('/admin')) return null;
+  const slug = storeConfig.name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '') || 'loja';
 
   return (
     <footer className="border-t border-border bg-card pb-20 md:pb-0">
@@ -31,7 +32,7 @@ export default function Footer() {
             <span className="label-caps text-muted-foreground">Links</span>
             <Link to="/catalogo" className="text-sm text-foreground hover:text-primary">Cardápio</Link>
             <Link to="/acompanhar" className="text-sm text-foreground hover:text-primary">Acompanhar Pedido</Link>
-            <Link to="/admin/login" className="text-sm text-muted-foreground hover:text-foreground">Área Admin</Link>
+            <Link to={`/${slug}/admin/login`} className="text-sm text-muted-foreground hover:text-foreground">Área Admin</Link>
           </div>
         </div>
         <div className="mt-8 border-t border-border pt-4 text-center">

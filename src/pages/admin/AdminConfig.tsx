@@ -266,8 +266,8 @@ export default function AdminConfig() {
 
       {/* Shareable catalog link */}
       {(() => {
-        const slug = config.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'loja';
-        const shareUrl = `${window.location.origin}/t/${slug}/cardapio`;
+        const slug = config.name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '') || 'loja';
+        const shareUrl = `${window.location.origin}/${slug}/cardapio`;
         const handleCopyLink = async () => {
           try { await navigator.clipboard.writeText(shareUrl); } catch { /* ignore */ }
           setLinkCopied(true);

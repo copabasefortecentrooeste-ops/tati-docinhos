@@ -12,8 +12,8 @@ export default function StoreLanding() {
   const { hours } = useHoursStore();
   const [copied, setCopied] = useState(false);
 
-  const pageUrl = `${window.location.origin}/t/${slug}`;
-  const catalogUrl = `/t/${slug}/cardapio`;
+  const pageUrl = `${window.location.origin}/${slug}`;
+  const catalogUrl = `/${slug}/cardapio`;
 
   const status = getStoreStatus(config, hours);
 

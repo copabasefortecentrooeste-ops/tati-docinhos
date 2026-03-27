@@ -1,25 +1,26 @@
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { LayoutDashboard, Package, ShoppingBag, MapPin, Tag, Clock, Settings, LogOut, MessageCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-
-const navItems = [
-  { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/admin/pedidos', icon: ShoppingBag, label: 'Pedidos' },
-  { path: '/admin/produtos', icon: Package, label: 'Produtos' },
-  { path: '/admin/bairros', icon: MapPin, label: 'Bairros' },
-  { path: '/admin/cupons', icon: Tag, label: 'Cupons' },
-  { path: '/admin/horarios', icon: Clock, label: 'Horários' },
-  { path: '/admin/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
-  { path: '/admin/config', icon: Settings, label: 'Config' },
-];
 
 export default function AdminLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const { slug } = useParams<{ slug: string }>();
+
+  const navItems = [
+    { path: `/${slug}/admin`, icon: LayoutDashboard, label: 'Dashboard' },
+    { path: `/${slug}/admin/pedidos`, icon: ShoppingBag, label: 'Pedidos' },
+    { path: `/${slug}/admin/produtos`, icon: Package, label: 'Produtos' },
+    { path: `/${slug}/admin/bairros`, icon: MapPin, label: 'Bairros' },
+    { path: `/${slug}/admin/cupons`, icon: Tag, label: 'Cupons' },
+    { path: `/${slug}/admin/horarios`, icon: Clock, label: 'Horários' },
+    { path: `/${slug}/admin/whatsapp`, icon: MessageCircle, label: 'WhatsApp' },
+    { path: `/${slug}/admin/config`, icon: Settings, label: 'Config' },
+  ];
 
   useEffect(() => {
     // Get current session on mount
@@ -27,7 +28,7 @@ export default function AdminLayout() {
       const sess = data.session;
       if (!sess || sess.user.app_metadata?.role !== 'admin') {
         if (sess) await supabase.auth.signOut(); // sign out non-admin user
-        navigate('/admin/login', { replace: true });
+        navigate(`/${slug}/admin/login`, { replace: true });
         setIsLoading(false);
         return;
       }
@@ -39,7 +40,7 @@ export default function AdminLayout() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
       if (!s || s.user.app_metadata?.role !== 'admin') {
         if (s) await supabase.auth.signOut();
-        navigate('/admin/login', { replace: true });
+        navigate(`/${slug}/admin/login`, { replace: true });
       } else {
         setSession(s);
       }
@@ -50,7 +51,7 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/admin/login');
+    navigate(`/${slug}/admin/login`);
   };
 
   if (isLoading) {
