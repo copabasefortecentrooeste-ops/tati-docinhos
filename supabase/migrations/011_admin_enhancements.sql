@@ -10,15 +10,19 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS empty_stock_behavior text DEFAULT 
 
 -- Histórico de movimentações de estoque
 CREATE TABLE IF NOT EXISTS stock_movements (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id uuid NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  product_id text NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   type text NOT NULL CHECK (type IN ('entrada', 'saida', 'ajuste')),
   qty integer NOT NULL,
   note text,
   created_at timestamptz DEFAULT now()
 );
 ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "stock_movements_all" ON stock_movements FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='stock_movements' AND policyname='stock_movements_all') THEN
+    CREATE POLICY stock_movements_all ON stock_movements FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
 
 -- Store config: modo de entrega e pedido mínimo
 ALTER TABLE store_config ADD COLUMN IF NOT EXISTS delivery_fee_mode text DEFAULT 'by_neighborhood' CHECK (delivery_fee_mode IN ('flat', 'by_neighborhood'));
