@@ -77,7 +77,7 @@ export const useStoreConfigStore = create<StoreConfigState>()(
           if (data) {
             set({ config: fromDB(data), loading: false });
           } else {
-            await supabase.from('store_config').upsert(toDB(get().config, sid));
+            await supabase.from('store_config').upsert(toDB(get().config, sid), { onConflict: 'store_id' });
             set({ loading: false });
           }
         } catch (err) {
@@ -92,7 +92,7 @@ export const useStoreConfigStore = create<StoreConfigState>()(
         const next = { ...prev, ...updates };
         set({ config: next });
         try {
-          await supabase.from('store_config').upsert(toDB(next, sid));
+          await supabase.from('store_config').upsert(toDB(next, sid), { onConflict: 'store_id' });
         } catch (err) {
           set({ config: prev });
           throw err;

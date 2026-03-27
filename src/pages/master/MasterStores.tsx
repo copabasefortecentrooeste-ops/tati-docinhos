@@ -161,11 +161,21 @@ export default function MasterStores() {
 
     setSaving(false);
 
-    const serverError = (data as Record<string, unknown> | null)?.error as string | undefined;
-    if (error || serverError) {
+    // supabase.functions.invoke retorna data=null e error=FunctionsHttpError quando a função
+    // responde com status não-2xx. O erro real do servidor está em error.context (Response).
+    if (error || (data as Record<string, unknown> | null)?.error) {
+      let description = (data as Record<string, unknown> | null)?.error as string | undefined;
+      if (!description && error) {
+        try {
+          const body = await (error as { context?: Response }).context?.json?.();
+          description = body?.error ?? error.message;
+        } catch {
+          description = error.message;
+        }
+      }
       toast({
         title: 'Erro ao criar loja',
-        description: serverError ?? error?.message ?? 'Erro desconhecido',
+        description: description ?? 'Erro desconhecido',
         variant: 'destructive',
       });
       return;

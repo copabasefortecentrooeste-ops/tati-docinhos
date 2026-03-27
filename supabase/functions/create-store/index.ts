@@ -115,7 +115,7 @@ serve(async (req) => {
     }
 
     // ── 9. Criar store_config padrão ─────────────────────────────────────────
-    await adminClient.from('store_config').insert({
+    const { error: configErr } = await adminClient.from('store_config').upsert({
       store_id: storeId,
       name: name.trim(),
       phone: '',
@@ -131,7 +131,12 @@ serve(async (req) => {
       block_orders_outside_hours: false,
       closed_message: 'Estamos fechados no momento.',
       operational_message: '',
-    });
+    }, { onConflict: 'store_id' });
+
+    if (configErr) {
+      // Não desfaz a loja — config pode ser criada depois pelo admin
+      console.error('[create-store] store_config error:', configErr.message);
+    }
 
     // ── 10. Criar horários padrão (seg-sab 09-18, dom fechado) ───────────────
     const defaultHours = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
@@ -141,7 +146,11 @@ serve(async (req) => {
       close_time: day === 0 ? null : '18:00',
       active: day !== 0,
     }));
-    await adminClient.from('business_hours').insert(defaultHours);
+    const { error: hoursErr } = await adminClient.from('business_hours').insert(defaultHours);
+
+    if (hoursErr) {
+      console.error('[create-store] business_hours error:', hoursErr.message);
+    }
 
     // ── 11. Retornar sucesso ─────────────────────────────────────────────────
     return new Response(
