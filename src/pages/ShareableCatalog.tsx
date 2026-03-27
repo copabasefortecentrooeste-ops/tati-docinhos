@@ -1,18 +1,29 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Copy, Check, Search, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useProductsStore } from '@/store/productsStore';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import ProductCard from '@/components/product/ProductCard';
+import { StoreProvider, useStoreCtx } from '@/contexts/StoreContext';
 
-export default function ShareableCatalog() {
+function ShareableCatalogInner() {
   const { slug } = useParams<{ slug: string }>();
+  const { storeId, isLoading: storeLoading } = useStoreCtx();
   const { products, categories } = useProductsStore();
   const { config } = useStoreConfigStore();
   const [activeCat, setActiveCat] = useState('');
   const [query, setQuery] = useState('');
   const [copied, setCopied] = useState(false);
+
+  const initConfig = useStoreConfigStore((s) => s.initFromDB);
+  const initProducts = useProductsStore((s) => s.initFromDB);
+
+  useEffect(() => {
+    if (!storeId || storeLoading) return;
+    initConfig(storeId);
+    initProducts(storeId);
+  }, [storeId, storeLoading]);
 
   const pageUrl = `${window.location.origin}/${slug}/cardapio`;
 
@@ -41,6 +52,14 @@ export default function ShareableCatalog() {
 
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(pageUrl)}&bgcolor=ffffff&color=1a1a1a&margin=4`;
 
+  if (storeLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -48,7 +67,7 @@ export default function ShareableCatalog() {
         <div className="container flex items-center justify-between py-3">
           <Link to={`/${slug}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft size={15} />
-            <span className="hidden sm:inline">{config.name}</span>
+            <span className="hidden sm:inline">{config.name || slug}</span>
           </Link>
           <h1 className="font-display text-base font-semibold text-foreground">Cardápio</h1>
           <button
@@ -66,7 +85,7 @@ export default function ShareableCatalog() {
         <div className="mb-6 flex items-center justify-between rounded-card border border-border bg-card p-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cardápio de</p>
-            <p className="font-display text-lg font-bold text-foreground">{config.name}</p>
+            <p className="font-display text-lg font-bold text-foreground">{config.name || slug}</p>
             <p className="mt-1 text-xs text-muted-foreground break-all">{pageUrl}</p>
           </div>
           <div className="ml-4 shrink-0 rounded-lg bg-white p-1.5 shadow-sm">
@@ -118,7 +137,7 @@ export default function ShareableCatalog() {
 
         {filtered.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-20 text-center">
-            <p className="text-lg text-muted-foreground">Nenhum doce encontrado 😢</p>
+            <p className="text-lg text-muted-foreground">Nenhum produto no cardápio ainda 🛒</p>
           </motion.div>
         )}
 
@@ -135,5 +154,14 @@ export default function ShareableCatalog() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ShareableCatalog() {
+  const { slug } = useParams<{ slug: string }>();
+  return (
+    <StoreProvider slug={slug ?? ''}>
+      <ShareableCatalogInner />
+    </StoreProvider>
   );
 }
