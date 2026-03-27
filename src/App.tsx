@@ -35,28 +35,27 @@ import MasterAdminLayout from "@/pages/master/MasterAdminLayout";
 import MasterDashboard from "@/pages/master/MasterDashboard";
 import MasterStores from "@/pages/master/MasterStores";
 import MasterConfig from "@/pages/master/MasterConfig";
+import TenantLayout from "@/pages/tenant/TenantLayout";
 import { useInitApp } from "@/hooks/useInitApp";
 
 const queryClient = new QueryClient();
 
-// Rotas globais conhecidas (não são slugs de loja)
-const NON_SLUG_SEGMENTS = new Set([
-  'catalogo', 'produto', 'carrinho', 'checkout', 'confirmacao',
-  'acompanhar', 'login', 'minha-conta', 'admin',
-]);
-
 function AppInner() {
   useInitApp();
   const location = useLocation();
+  // TenantLayout provides its own shell for slug routes; hide global shell for them
   const firstSegment = location.pathname.split('/')[1];
-  const isSlugRoute = !!firstSegment && !NON_SLUG_SEGMENTS.has(firstSegment);
-  // Hide global shell on platform landing, admin routes, and per-store slug routes
+  const NON_SLUG = new Set(['catalogo','produto','carrinho','checkout','confirmacao','acompanhar','login','minha-conta','admin']);
+  const isSlugRoute = !!firstSegment && !NON_SLUG.has(firstSegment);
   const hideShell = location.pathname === '/' || location.pathname.startsWith('/admin') || isSlugRoute;
   return (
     <>
       {!hideShell && <Header />}
       <Routes>
+        {/* Platform routes */}
         <Route path="/" element={<PlatformLanding />} />
+
+        {/* Global Taty Docinhos routes (backward compat) */}
         <Route path="/catalogo" element={<Catalog />} />
         <Route path="/produto/:id" element={<ProductDetail />} />
         <Route path="/carrinho" element={<Cart />} />
@@ -65,14 +64,30 @@ function AppInner() {
         <Route path="/acompanhar" element={<OrderTracking />} />
         <Route path="/login" element={<CustomerLogin />} />
         <Route path="/minha-conta" element={<CustomerProfile />} />
+
+        {/* Master admin */}
         <Route path="/admin/login" element={<MasterAdminLogin />} />
         <Route path="/admin" element={<MasterAdminLayout />}>
           <Route index element={<MasterDashboard />} />
           <Route path="lojas" element={<MasterStores />} />
           <Route path="config" element={<MasterConfig />} />
         </Route>
-        <Route path="/:slug" element={<StoreLanding />} />
-        <Route path="/:slug/cardapio" element={<ShareableCatalog />} />
+
+        {/* Tenant storefront — TenantLayout provides StoreProvider + header/footer */}
+        <Route path="/:slug" element={<TenantLayout />}>
+          <Route index element={<StoreLanding />} />
+          <Route path="catalogo" element={<Catalog />} />
+          <Route path="cardapio" element={<ShareableCatalog />} />
+          <Route path="produto/:id" element={<ProductDetail />} />
+          <Route path="carrinho" element={<Cart />} />
+          <Route path="checkout" element={<Checkout />} />
+          <Route path="confirmacao/:code" element={<OrderConfirmation />} />
+          <Route path="acompanhar" element={<OrderTracking />} />
+          <Route path="login" element={<CustomerLogin />} />
+          <Route path="conta" element={<CustomerProfile />} />
+        </Route>
+
+        {/* Tenant admin — AdminLayout provides its own StoreProvider */}
         <Route path="/:slug/admin/login" element={<AdminLogin />} />
         <Route path="/:slug/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
@@ -85,6 +100,7 @@ function AppInner() {
           <Route path="config" element={<AdminConfig />} />
           <Route path="whatsapp" element={<AdminWhatsApp />} />
         </Route>
+
         <Route path="*" element={<NotFound />} />
       </Routes>
       {!hideShell && <Footer />}

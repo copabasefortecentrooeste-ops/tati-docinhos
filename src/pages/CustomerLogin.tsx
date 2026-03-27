@@ -5,13 +5,17 @@ import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useCustomerStore } from '@/store/customerStore';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { toast } from '@/hooks/use-toast';
+import { useTenantSlug } from '@/hooks/useTenantSlug';
+import { tenantRoutes } from '@/lib/tenantRoutes';
 
 type Tab = 'login' | 'register';
 
 export default function CustomerLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('returnTo') || '/minha-conta';
+  const slug = useTenantSlug();
+  const routes = tenantRoutes(slug);
+  const returnTo = searchParams.get('returnTo') || routes.account;
 
   const { signIn, signUp, session } = useCustomerStore();
   const { config } = useStoreConfigStore();
@@ -63,7 +67,6 @@ export default function CustomerLogin() {
       toast({ title: error, variant: 'destructive' });
     } else {
       toast({ title: 'Login realizado! 🎉' });
-      navigate(returnTo, { replace: true });
     }
   };
 
@@ -97,7 +100,6 @@ export default function CustomerLogin() {
       toast({ title: error, variant: 'destructive' });
     } else {
       toast({ title: 'Conta criada com sucesso! 🎉' });
-      navigate(returnTo, { replace: true });
     }
   };
 
@@ -105,7 +107,7 @@ export default function CustomerLogin() {
     <div className="min-h-screen py-8 pb-24">
       <div className="container max-w-md">
         <Link
-          to="/"
+          to={routes.home}
           className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft size={16} /> Voltar

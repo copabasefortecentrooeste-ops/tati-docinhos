@@ -6,8 +6,12 @@ import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { useHoursStore } from '@/store/hoursStore';
 import { getStoreStatus } from '@/lib/storeStatus';
 import { formatPrice } from '@/lib/format';
+import { useTenantSlug } from '@/hooks/useTenantSlug';
+import { tenantRoutes } from '@/lib/tenantRoutes';
 
 export default function Cart() {
+  const slug = useTenantSlug();
+  const routes = tenantRoutes(slug);
   const { items, removeItem, updateQuantity, getSubtotal } = useCartStore();
   const { config } = useStoreConfigStore();
   const { hours } = useHoursStore();
@@ -19,7 +23,7 @@ export default function Cart() {
         <ShoppingBag size={48} className="text-muted-foreground/40" />
         <h2 className="mt-4 font-display text-xl font-semibold text-foreground">Sua cesta está esperando por doçuras</h2>
         <p className="mt-1 text-sm text-muted-foreground">Que tal explorar nosso cardápio?</p>
-        <Link to="/catalogo">
+        <Link to={routes.catalog}>
           <motion.button
             whileTap={{ scale: 0.95 }}
             className="mt-6 flex items-center gap-2 rounded-button bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
@@ -111,7 +115,6 @@ export default function Cart() {
           ))}
         </div>
 
-        {/* Summary */}
         <div className="mt-6 rounded-container bg-secondary p-5">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Subtotal</span>
@@ -119,7 +122,7 @@ export default function Cart() {
           </div>
           <p className="mt-1 text-xs text-muted-foreground">Taxa de entrega calculada no checkout</p>
           {status.canOrder ? (
-            <Link to="/checkout" className="mt-4 block">
+            <Link to={routes.checkout} className="mt-4 block">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-card"
@@ -134,7 +137,7 @@ export default function Cart() {
           )}
         </div>
 
-        <Link to="/catalogo" className="mt-4 block text-center text-sm text-primary hover:underline">
+        <Link to={routes.catalog} className="mt-4 block text-center text-sm text-primary hover:underline">
           Continuar comprando
         </Link>
       </div>

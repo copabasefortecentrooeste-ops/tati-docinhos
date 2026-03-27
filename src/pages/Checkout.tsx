@@ -13,10 +13,16 @@ import { getStoreStatus } from '@/lib/storeStatus';
 import { formatPrice } from '@/lib/format';
 import { mapSupabaseError } from '@/lib/supabaseError';
 import { toast } from '@/hooks/use-toast';
+import { useTenantSlug } from '@/hooks/useTenantSlug';
+import { tenantRoutes } from '@/lib/tenantRoutes';
+import { useStoreCtx } from '@/contexts/StoreContext';
 import type { Order, Coupon } from '@/types';
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const slug = useTenantSlug();
+  const routes = tenantRoutes(slug);
+  const { storeId } = useStoreCtx();
   const { items, getSubtotal, clearCart } = useCartStore();
   const addOrder = useOrderStore((s) => s.addOrder);
   const { neighborhoods } = useNeighborhoodsStore();
@@ -186,11 +192,11 @@ export default function Checkout() {
       createdAt: new Date().toISOString(),
     };
     try {
-      await addOrder(order);
+      await addOrder(order, storeId || undefined);
       clearCart();
       // Refresh requestId so a future order from the same session gets a new ID
       requestIdRef.current = crypto.randomUUID();
-      navigate(`/confirmacao/${code}`);
+      navigate(routes.confirmation(code));
     } catch (err) {
       const mapped = mapSupabaseError(err);
       toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
@@ -201,7 +207,7 @@ export default function Checkout() {
   };
 
   if (items.length === 0) {
-    navigate('/carrinho');
+    navigate(routes.cart);
     return null;
   }
 
@@ -217,13 +223,13 @@ export default function Checkout() {
               Faça login ou crie uma conta para finalizar seu pedido.
             </p>
             <Link
-              to="/login?returnTo=/checkout"
+              to={routes.login(routes.checkout)}
               className="mt-5 block w-full rounded-button bg-primary py-3 text-center text-sm font-semibold text-primary-foreground"
             >
               Entrar / Criar Conta
             </Link>
             <button
-              onClick={() => navigate('/carrinho')}
+              onClick={() => navigate(routes.cart)}
               className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground"
             >
               Voltar ao carrinho

@@ -2,12 +2,18 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, Copy, ArrowRight } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
+import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { formatPrice } from '@/lib/format';
 import { toast } from '@/hooks/use-toast';
+import { useTenantSlug } from '@/hooks/useTenantSlug';
+import { tenantRoutes } from '@/lib/tenantRoutes';
 
 export default function OrderConfirmation() {
   const { code } = useParams();
+  const slug = useTenantSlug();
+  const routes = tenantRoutes(slug);
   const order = useOrderStore((s) => s.getOrderByCode(code || ''));
+  const { config } = useStoreConfigStore();
 
   if (!order) {
     return (
@@ -40,7 +46,7 @@ export default function OrderConfirmation() {
         >
           <h1 className="mt-6 font-display text-3xl font-bold text-foreground">Pedido Confirmado!</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Obrigada por escolher a Taty Docinhos 💕
+            Obrigada por escolher {config.name || 'nossa loja'} 💕
           </p>
 
           <div className="mx-auto mt-6 rounded-container bg-secondary p-6">
@@ -69,7 +75,7 @@ export default function OrderConfirmation() {
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
-            <Link to={`/acompanhar?code=${order.code}&phone=${encodeURIComponent(order.customer.phone)}`}>
+            <Link to={`${routes.tracking}?code=${order.code}&phone=${encodeURIComponent(order.customer.phone)}`}>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3 text-sm font-semibold text-primary-foreground"
@@ -77,7 +83,7 @@ export default function OrderConfirmation() {
                 Acompanhar Pedido <ArrowRight size={16} />
               </motion.button>
             </Link>
-            <Link to="/" className="text-sm text-primary hover:underline">
+            <Link to={routes.home} className="text-sm text-primary hover:underline">
               Voltar ao início
             </Link>
           </div>

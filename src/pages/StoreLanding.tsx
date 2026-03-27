@@ -1,32 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Copy, Check, ShoppingBag, BookOpen, MapPin, Phone } from 'lucide-react';
+import { Copy, Check, BookOpen, MapPin, Phone } from 'lucide-react';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { useHoursStore } from '@/store/hoursStore';
 import { getStoreStatus } from '@/lib/storeStatus';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { StoreProvider, useStoreCtx } from '@/contexts/StoreContext';
+import { tenantRoutes } from '@/lib/tenantRoutes';
 
-function StoreLandingInner() {
+export default function StoreLanding() {
   const { slug } = useParams<{ slug: string }>();
-  const { storeId, isLoading: storeLoading } = useStoreCtx();
   const { config } = useStoreConfigStore();
   const { hours } = useHoursStore();
   const [copied, setCopied] = useState(false);
 
-  const initConfig = useStoreConfigStore((s) => s.initFromDB);
-  const initHours = useHoursStore((s) => s.initFromDB);
-
-  useEffect(() => {
-    if (!storeId || storeLoading) return;
-    initConfig(storeId);
-    initHours(storeId);
-  }, [storeId, storeLoading]);
-
+  const routes = tenantRoutes(slug ?? '');
   const pageUrl = `${window.location.origin}/${slug}`;
-  const catalogUrl = `/${slug}/cardapio`;
-
   const status = getStoreStatus(config, hours);
 
   const statusLabel: Record<string, { label: string; classes: string }> = {
@@ -55,16 +44,8 @@ function StoreLandingInner() {
     config.name ? `Faça seu pedido online em ${config.name}.` : undefined,
   );
 
-  if (storeLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-secondary px-4 py-12">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-secondary px-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -77,11 +58,13 @@ function StoreLandingInner() {
             <img src={config.logo} alt={config.name} className="mb-4 h-20 w-20 rounded-full object-cover shadow-md" />
           ) : (
             <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground shadow-md">
-              {config.name ? config.name.charAt(0).toUpperCase() : slug?.charAt(0).toUpperCase()}
+              {config.name ? config.name.charAt(0).toUpperCase() : (slug ?? 'L').charAt(0).toUpperCase()}
             </div>
           )}
           <h1 className="font-display text-2xl font-bold text-foreground">{config.name || slug}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Confeitaria Artesanal</p>
+          {config.deliveryPolicy && (
+            <p className="mt-1 text-sm text-muted-foreground">{config.deliveryPolicy}</p>
+          )}
           <span className={`mt-3 inline-flex items-center rounded-full px-3 py-0.5 text-xs font-medium ${badge.classes}`}>
             {badge.label}
           </span>
@@ -106,25 +89,14 @@ function StoreLandingInner() {
           {copied ? 'Link copiado!' : 'Copiar link do cardápio'}
         </button>
 
-        {/* CTA buttons */}
-        <div className="flex flex-col gap-3">
-          <Link
-            to={catalogUrl}
-            className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            <BookOpen size={16} />
-            Ver Cardápio Completo
-          </Link>
-          {status.type === 'open' && (
-            <Link
-              to="/catalogo"
-              className="flex w-full items-center justify-center gap-2 rounded-button border border-primary py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
-            >
-              <ShoppingBag size={16} />
-              Fazer Pedido
-            </Link>
-          )}
-        </div>
+        {/* CTA */}
+        <Link
+          to={routes.catalog}
+          className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          <BookOpen size={16} />
+          Ver Cardápio Completo
+        </Link>
 
         {/* Store info */}
         <div className="mt-8 space-y-2 border-t border-border pt-6 text-center text-xs text-muted-foreground">
@@ -141,14 +113,5 @@ function StoreLandingInner() {
         </div>
       </motion.div>
     </div>
-  );
-}
-
-export default function StoreLanding() {
-  const { slug } = useParams<{ slug: string }>();
-  return (
-    <StoreProvider slug={slug ?? ''}>
-      <StoreLandingInner />
-    </StoreProvider>
   );
 }

@@ -8,10 +8,14 @@ import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { formatPrice } from '@/lib/format';
 import { ORDER_STATUS_LABELS } from '@/lib/orderStatus';
 import { toast } from '@/hooks/use-toast';
+import { useTenantSlug } from '@/hooks/useTenantSlug';
+import { tenantRoutes } from '@/lib/tenantRoutes';
 
 export default function CustomerProfile() {
   const navigate = useNavigate();
-  const { customer, session, signOut, updateProfile } = useCustomerStore();
+  const slug = useTenantSlug();
+  const routes = tenantRoutes(slug);
+  const { customer, session, loading, signOut, updateProfile } = useCustomerStore();
   const { config } = useStoreConfigStore();
   const deliveryMode = config.deliveryMode ?? 'city_only';
   const { orders } = useOrderStore();
@@ -48,11 +52,19 @@ export default function CustomerProfile() {
     }
   }, [customer]);
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   if (!session || !customer) {
     return (
       <div className="min-h-screen py-16 text-center">
         <p className="text-muted-foreground">Você não está logado.</p>
-        <Link to="/login" className="mt-4 inline-block text-primary hover:underline">
+        <Link to={routes.login()} className="mt-4 inline-block text-primary hover:underline">
           Fazer login
         </Link>
       </div>
@@ -78,7 +90,7 @@ export default function CustomerProfile() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate(routes.home);
     toast({ title: 'Você saiu da conta.' });
   };
 
@@ -175,7 +187,7 @@ export default function CustomerProfile() {
           {myOrders.length === 0 ? (
             <div className="rounded-card border border-border bg-card p-6 text-center text-sm text-muted-foreground">
               Nenhum pedido ainda.{' '}
-              <Link to="/catalogo" className="text-primary hover:underline">
+              <Link to={routes.catalog} className="text-primary hover:underline">
                 Ver cardápio
               </Link>
             </div>
@@ -210,7 +222,7 @@ export default function CustomerProfile() {
                     ))}
                   </div>
                   <Link
-                    to={`/acompanhar?code=${order.code}&phone=${order.customer.phone}`}
+                    to={`${routes.tracking}?code=${order.code}&phone=${order.customer.phone}`}
                     className="mt-3 inline-block text-xs text-primary hover:underline"
                   >
                     Acompanhar pedido →
