@@ -1,12 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <!-- Red map pin shape -->
-  <path d="M50 5 C30 5 14 21 14 41 C14 61 50 95 50 95 C50 95 86 61 86 41 C86 21 70 5 50 5 Z" fill="#CC1515"/>
-  <!-- Dark bag body -->
-  <rect x="28" y="34" width="44" height="34" rx="4" fill="#1a1a1a"/>
-  <!-- Bag handle -->
-  <path d="M38 34 Q38 24 50 24 Q62 24 62 34" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 115" width="100" height="115">
+  <!-- Red map pin / location marker -->
+  <path d="M50 4 C28 4 10 22 10 44 C10 68 50 111 50 111 C50 111 90 68 90 44 C90 22 72 4 50 4 Z" fill="#CC1212"/>
+  <!-- Darker red inner circle for depth -->
+  <circle cx="50" cy="44" r="28" fill="#B80F0F"/>
+
+  <!-- Black shopping bag body -->
+  <path d="M30 40 L32 62 L68 62 L70 40 Z" fill="#111111"/>
+  <!-- Bag flap / top angled part -->
+  <path d="M30 40 L38 32 L62 32 L70 40 Z" fill="#222222"/>
+  <!-- Bag handle arc -->
+  <path d="M38 32 Q38 22 50 22 Q62 22 62 32" fill="none" stroke="#111111" stroke-width="4.5" stroke-linecap="round"/>
+
   <!-- White checkmark -->
-  <polyline points="36,51 45,60 64,40" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Yellow lightning bolt on left -->
-  <polygon points="10,38 18,38 13,50 21,50 8,68 12,53 4,53" fill="#FFD700"/>
+  <polyline points="35,48 45,58 65,36" fill="none" stroke="white" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Yellow speed lines (left side) -->
+  <rect x="2" y="40" width="14" height="5" rx="2.5" fill="#FFD700"/>
+  <rect x="5" y="49" width="10" height="4" rx="2" fill="#FFD700"/>
 </svg>
