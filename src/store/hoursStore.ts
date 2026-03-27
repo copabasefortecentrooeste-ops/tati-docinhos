@@ -4,6 +4,8 @@ import type { BusinessHours } from '@/types';
 import { businessHours as defaultHours } from '@/data/mockData';
 import { supabase } from '@/lib/supabase';
 
+const TATY_STORE_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 const fromDB = (r: Record<string, unknown>): BusinessHours => ({
   id: r.id as string,
   dayOfWeek: r.day_of_week as number,
@@ -21,8 +23,8 @@ interface HoursState {
   /** True while initFromDB is in flight. Never persisted. */
   loading: boolean;
   loadError: boolean;
-  updateHours: (id: string, updates: Partial<BusinessHours>) => Promise<void>;
-  initFromDB: () => Promise<void>;
+  updateHours: (id: string, updates: Partial<BusinessHours>, storeId?: string) => Promise<void>;
+  initFromDB: (storeId?: string) => Promise<void>;
 }
 
 export const useHoursStore = create<HoursState>()(
@@ -32,14 +34,15 @@ export const useHoursStore = create<HoursState>()(
       loading: true,
       loadError: false,
 
-      initFromDB: async () => {
+      initFromDB: async (storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         set({ loading: true, loadError: false });
         try {
-          const { data } = await supabase.from('business_hours').select('*').order('day_of_week');
+          const { data } = await supabase.from('business_hours').select('*').eq('store_id', sid).order('day_of_week');
           if (data && data.length > 0) {
             set({ hours: data.map(fromDB), loading: false });
           } else {
-            await supabase.from('business_hours').upsert(get().hours.map(toDB));
+            await supabase.from('business_hours').upsert(get().hours.map(h => ({ ...toDB(h), store_id: sid })));
             set({ loading: false });
           }
         } catch (err) {
@@ -48,13 +51,14 @@ export const useHoursStore = create<HoursState>()(
         }
       },
 
-      updateHours: async (id, updates) => {
+      updateHours: async (id, updates, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const prev = get().hours;
         set((s) => ({ hours: s.hours.map((h) => h.id === id ? { ...h, ...updates } : h) }));
         const updated = get().hours.find((h) => h.id === id);
         if (updated) {
           try {
-            await supabase.from('business_hours').update(toDB(updated)).eq('id', id);
+            await supabase.from('business_hours').update({ ...toDB(updated), store_id: sid }).eq('id', id);
           } catch (err) {
             set({ hours: prev });
             throw err;

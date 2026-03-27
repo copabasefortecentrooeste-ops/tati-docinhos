@@ -159,3 +159,26 @@ export interface StockMovement {
   note?: string;
   createdAt: string;
 }
+
+// Multi-tenant types
+export interface Store {
+  id: string;
+  slug: string;
+  name: string;
+  ownerEmail?: string;
+  segment?: string;
+  plan: 'trial' | 'basic' | 'pro';
+  status: 'active' | 'suspended' | 'expired';
+  trialEndsAt?: string;
+  createdAt: string;
+}
+
+export interface StorePlan {
+  id: string;
+  name: string;
+  price: number;
+  durationDays: number;
+  maxProducts: number;
+  features: Record<string, boolean | number | string>;
+  active: boolean;
+}

@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { whatsAppService, ORDER_STATUS_TO_WA_EVENT } from '@/lib/whatsapp';
 import { formatPrice } from '@/lib/format';
 
+const TATY_STORE_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 // ── Mappers ────────────────────────────────────────────────
 const fromDB = (r: Record<string, unknown>): Order => ({
   id: r.id as string,
@@ -62,10 +64,10 @@ interface OrderState {
   /** True while initFromDB is in flight. Always starts true (never persisted). */
   loading: boolean;
   loadError: boolean;
-  addOrder: (order: Order) => Promise<void>;
+  addOrder: (order: Order, storeId?: string) => Promise<void>;
   updateStatus: (id: string, status: Order['status']) => Promise<void>;
   getOrderByCode: (code: string) => Order | undefined;
-  initFromDB: () => Promise<void>;
+  initFromDB: (storeId?: string) => Promise<void>;
   /**
    * Subscribe to Supabase Realtime for INSERT/UPDATE on the orders table.
    * Returns a cleanup function — call it on component unmount.
@@ -73,7 +75,7 @@ interface OrderState {
    * Deduplication: INSERT events are ignored if the order id is already in
    * the list (prevents doubling the addOrder optimistic update).
    */
-  subscribeRealtime: () => () => void;
+  subscribeRealtime: (storeId?: string) => () => void;
 }
 
 export const useOrderStore = create<OrderState>()(
@@ -83,12 +85,14 @@ export const useOrderStore = create<OrderState>()(
       loading: true, // starts true; set to false after first initFromDB
       loadError: false,
 
-      initFromDB: async () => {
+      initFromDB: async (storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         set({ loading: true, loadError: false });
         try {
           const { data } = await supabase
             .from('orders')
             .select('*')
+            .eq('store_id', sid)
             .order('created_at', { ascending: false });
           set({ orders: data ? data.map(fromDB) : [], loading: false });
         } catch (err) {
@@ -97,12 +101,13 @@ export const useOrderStore = create<OrderState>()(
         }
       },
 
-      subscribeRealtime: () => {
+      subscribeRealtime: (storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const channel = supabase
-          .channel('admin-orders-realtime')
+          .channel(`admin-orders-realtime-${sid}`)
           .on(
             'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'orders' },
+            { event: 'INSERT', schema: 'public', table: 'orders', filter: `store_id=eq.${sid}` },
             (payload) => {
               const newOrder = fromDB(payload.new as Record<string, unknown>);
               set((s) => {
@@ -114,7 +119,7 @@ export const useOrderStore = create<OrderState>()(
           )
           .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'orders' },
+            { event: 'UPDATE', schema: 'public', table: 'orders', filter: `store_id=eq.${sid}` },
             (payload) => {
               const updated = fromDB(payload.new as Record<string, unknown>);
               set((s) => ({
@@ -129,10 +134,11 @@ export const useOrderStore = create<OrderState>()(
         };
       },
 
-      addOrder: async (order) => {
+      addOrder: async (order, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         set((s) => ({ orders: [order, ...s.orders] }));
         try {
-          await supabase.from('orders').insert(toDB(order));
+          await supabase.from('orders').insert({ ...toDB(order), store_id: sid });
           // Decrement stock for managed-stock products
           for (const item of order.items) {
             const product = item.product;
@@ -150,6 +156,7 @@ export const useOrderStore = create<OrderState>()(
                 type: 'saida',
                 qty: item.quantity,
                 note: `Pedido #${order.code}`,
+                store_id: sid,
               });
             }
           }

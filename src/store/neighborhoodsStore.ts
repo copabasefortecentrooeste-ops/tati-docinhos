@@ -4,16 +4,18 @@ import type { DeliveryNeighborhood } from '@/types';
 import { neighborhoods as defaultNeighborhoods } from '@/data/mockData';
 import { supabase } from '@/lib/supabase';
 
+const TATY_STORE_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 interface NeighborhoodsState {
   neighborhoods: DeliveryNeighborhood[];
   /** True while initFromDB is in flight. Never persisted. */
   loading: boolean;
   loadError: boolean;
-  addNeighborhood: (n: DeliveryNeighborhood) => Promise<void>;
+  addNeighborhood: (n: DeliveryNeighborhood, storeId?: string) => Promise<void>;
   updateNeighborhood: (id: string, updates: Partial<DeliveryNeighborhood>) => Promise<void>;
   deleteNeighborhood: (id: string) => Promise<void>;
   toggleActive: (id: string) => Promise<void>;
-  initFromDB: () => Promise<void>;
+  initFromDB: (storeId?: string) => Promise<void>;
 }
 
 export const useNeighborhoodsStore = create<NeighborhoodsState>()(
@@ -23,14 +25,15 @@ export const useNeighborhoodsStore = create<NeighborhoodsState>()(
       loading: true,
       loadError: false,
 
-      initFromDB: async () => {
+      initFromDB: async (storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         set({ loading: true, loadError: false });
         try {
-          const { data } = await supabase.from('neighborhoods').select('*');
+          const { data } = await supabase.from('neighborhoods').select('*').eq('store_id', sid);
           if (data && data.length > 0) {
             set({ neighborhoods: data as DeliveryNeighborhood[], loading: false });
           } else {
-            await supabase.from('neighborhoods').upsert(get().neighborhoods);
+            await supabase.from('neighborhoods').upsert(get().neighborhoods.map(n => ({ ...n, store_id: sid })));
             set({ loading: false });
           }
         } catch (err) {
@@ -39,11 +42,12 @@ export const useNeighborhoodsStore = create<NeighborhoodsState>()(
         }
       },
 
-      addNeighborhood: async (n) => {
+      addNeighborhood: async (n, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const prev = get().neighborhoods;
         set((s) => ({ neighborhoods: [...s.neighborhoods, n] }));
         try {
-          await supabase.from('neighborhoods').insert(n);
+          await supabase.from('neighborhoods').insert({ ...n, store_id: sid });
         } catch (err) {
           set({ neighborhoods: prev });
           throw err;

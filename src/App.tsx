@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,17 +29,25 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import StoreLanding from "./pages/StoreLanding";
 import ShareableCatalog from "./pages/ShareableCatalog";
 import NotFound from "./pages/NotFound";
+import PlatformLanding from "@/pages/PlatformLanding";
+import MasterAdminLogin from "@/pages/master/MasterAdminLogin";
+import MasterAdminLayout from "@/pages/master/MasterAdminLayout";
+import MasterDashboard from "@/pages/master/MasterDashboard";
+import MasterStores from "@/pages/master/MasterStores";
 import { useInitApp } from "@/hooks/useInitApp";
 
 const queryClient = new QueryClient();
 
 function AppInner() {
   useInitApp();
+  const location = useLocation();
+  // Hide global shell on platform landing and master admin routes
+  const hideShell = location.pathname === '/' || location.pathname.startsWith('/admin');
   return (
     <>
-      <Header />
+      {!hideShell && <Header />}
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route path="/" element={<PlatformLanding />} />
         <Route path="/catalogo" element={<Catalog />} />
         <Route path="/produto/:id" element={<ProductDetail />} />
         <Route path="/carrinho" element={<Cart />} />
@@ -48,6 +56,11 @@ function AppInner() {
         <Route path="/acompanhar" element={<OrderTracking />} />
         <Route path="/login" element={<CustomerLogin />} />
         <Route path="/minha-conta" element={<CustomerProfile />} />
+        <Route path="/admin/login" element={<MasterAdminLogin />} />
+        <Route path="/admin" element={<MasterAdminLayout />}>
+          <Route index element={<MasterDashboard />} />
+          <Route path="lojas" element={<MasterStores />} />
+        </Route>
         <Route path="/:slug" element={<StoreLanding />} />
         <Route path="/:slug/cardapio" element={<ShareableCatalog />} />
         <Route path="/:slug/admin/login" element={<AdminLogin />} />
@@ -64,8 +77,8 @@ function AppInner() {
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Footer />
-      <BottomNav />
+      {!hideShell && <Footer />}
+      {!hideShell && <BottomNav />}
     </>
   );
 }

@@ -4,6 +4,8 @@ import type { Product, Category } from '@/types';
 import { products as defaultProducts, categories as defaultCategories } from '@/data/mockData';
 import { supabase } from '@/lib/supabase';
 
+const TATY_STORE_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 // ── Mappers ────────────────────────────────────────────────
 const prodFromDB = (r: Record<string, unknown>): Product => ({
   id: r.id as string,
@@ -25,7 +27,7 @@ const prodFromDB = (r: Record<string, unknown>): Product => ({
   emptyStockBehavior: (r.empty_stock_behavior as 'unavailable' | 'whatsapp') ?? 'unavailable',
 });
 
-const prodToDB = (p: Product) => ({
+const prodToDB = (p: Product, storeId?: string) => ({
   id: p.id,
   name: p.name,
   description: p.description,
@@ -43,6 +45,7 @@ const prodToDB = (p: Product) => ({
   stock_alert_qty: p.stockAlertQty ?? 5,
   allow_sell_when_empty: p.allowSellWhenEmpty ?? false,
   empty_stock_behavior: p.emptyStockBehavior ?? 'unavailable',
+  store_id: storeId || TATY_STORE_ID,
 });
 
 const catFromDB = (r: Record<string, unknown>): Category => ({
@@ -55,9 +58,10 @@ const catFromDB = (r: Record<string, unknown>): Category => ({
   active: (r.active as boolean) ?? true,
 });
 
-const catToDB = (c: Category) => ({
+const catToDB = (c: Category, storeId?: string) => ({
   id: c.id, name: c.name, slug: c.slug, image: c.image ?? '', description: c.description ?? '',
   sort_order: c.sortOrder ?? 0, active: c.active ?? true,
+  store_id: storeId || TATY_STORE_ID,
 });
 
 // ── Store ──────────────────────────────────────────────────
@@ -69,16 +73,16 @@ interface ProductsState {
   loadError: boolean;
 
   // Products
-  addProduct: (product: Product) => Promise<void>;
-  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  addProduct: (product: Product, storeId?: string) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Product>, storeId?: string) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
 
   // Categories
-  addCategory: (category: Category) => Promise<void>;
-  updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  addCategory: (category: Category, storeId?: string) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<Category>, storeId?: string) => Promise<void>;
   deleteCategory: (id: string) => Promise<{ ok: boolean; reason?: string }>;
 
-  initFromDB: () => Promise<void>;
+  initFromDB: (storeId?: string) => Promise<void>;
 }
 
 export const useProductsStore = create<ProductsState>()(
@@ -90,24 +94,25 @@ export const useProductsStore = create<ProductsState>()(
       loadError: false,
 
       // ── Init ──────────────────────────────────────────────
-      initFromDB: async () => {
+      initFromDB: async (storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         set({ loading: true, loadError: false });
         try {
           const [{ data: prods }, { data: cats }] = await Promise.all([
-            supabase.from('products').select('*'),
-            supabase.from('categories').select('*'),
+            supabase.from('products').select('*').eq('store_id', sid),
+            supabase.from('categories').select('*').eq('store_id', sid),
           ]);
 
           if (cats && cats.length > 0) {
             set({ categories: cats.map(catFromDB) });
           } else {
-            await supabase.from('categories').upsert(get().categories.map(catToDB));
+            await supabase.from('categories').upsert(get().categories.map(c => catToDB(c, sid)));
           }
 
           if (prods && prods.length > 0) {
             set({ products: prods.map(prodFromDB) });
           } else {
-            await supabase.from('products').upsert(get().products.map(prodToDB));
+            await supabase.from('products').upsert(get().products.map(p => prodToDB(p, sid)));
           }
 
           set({ loading: false });
@@ -118,26 +123,28 @@ export const useProductsStore = create<ProductsState>()(
       },
 
       // ── Product CRUD ──────────────────────────────────────
-      addProduct: async (product) => {
+      addProduct: async (product, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const prevProducts = get().products;
         const prevCategories = get().categories;
         set((s) => ({ products: [...s.products, product] }));
         try {
-          await supabase.from('products').insert(prodToDB(product));
+          await supabase.from('products').insert(prodToDB(product, sid));
         } catch (err) {
           set({ products: prevProducts, categories: prevCategories });
           throw err;
         }
       },
 
-      updateProduct: async (id, updates) => {
+      updateProduct: async (id, updates, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const prevProducts = get().products;
         const prevCategories = get().categories;
         set((s) => ({ products: s.products.map((p) => p.id === id ? { ...p, ...updates } : p) }));
         const updated = get().products.find((p) => p.id === id);
         if (updated) {
           try {
-            await supabase.from('products').update(prodToDB(updated)).eq('id', id);
+            await supabase.from('products').update(prodToDB(updated, sid)).eq('id', id);
           } catch (err) {
             set({ products: prevProducts, categories: prevCategories });
             throw err;
@@ -158,19 +165,21 @@ export const useProductsStore = create<ProductsState>()(
       },
 
       // ── Category CRUD ─────────────────────────────────────
-      addCategory: async (category) => {
+      addCategory: async (category, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const prevProducts = get().products;
         const prevCategories = get().categories;
         set((s) => ({ categories: [...s.categories, category] }));
         try {
-          await supabase.from('categories').insert(catToDB(category));
+          await supabase.from('categories').insert(catToDB(category, sid));
         } catch (err) {
           set({ products: prevProducts, categories: prevCategories });
           throw err;
         }
       },
 
-      updateCategory: async (id, updates) => {
+      updateCategory: async (id, updates, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const prevProducts = get().products;
         const prevCategories = get().categories;
         set((s) => ({
@@ -179,7 +188,7 @@ export const useProductsStore = create<ProductsState>()(
         const updated = get().categories.find((c) => c.id === id);
         if (updated) {
           try {
-            await supabase.from('categories').update(catToDB(updated)).eq('id', id);
+            await supabase.from('categories').update(catToDB(updated, sid)).eq('id', id);
           } catch (err) {
             set({ products: prevProducts, categories: prevCategories });
             throw err;

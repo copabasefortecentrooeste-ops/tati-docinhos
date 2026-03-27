@@ -4,6 +4,8 @@ import type { Coupon } from '@/types';
 import { coupons as defaultCoupons } from '@/data/mockData';
 import { supabase } from '@/lib/supabase';
 
+const TATY_STORE_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 const fromDB = (r: Record<string, unknown>): Coupon => ({
   id: r.id as string,
   code: r.code as string,
@@ -23,11 +25,11 @@ interface CouponsState {
   /** True while initFromDB is in flight. Never persisted. */
   loading: boolean;
   loadError: boolean;
-  addCoupon: (c: Coupon) => Promise<void>;
+  addCoupon: (c: Coupon, storeId?: string) => Promise<void>;
   updateCoupon: (id: string, updates: Partial<Coupon>) => Promise<void>;
   deleteCoupon: (id: string) => Promise<void>;
   toggleActive: (id: string) => Promise<void>;
-  initFromDB: () => Promise<void>;
+  initFromDB: (storeId?: string) => Promise<void>;
 }
 
 export const useCouponsStore = create<CouponsState>()(
@@ -37,14 +39,15 @@ export const useCouponsStore = create<CouponsState>()(
       loading: true,
       loadError: false,
 
-      initFromDB: async () => {
+      initFromDB: async (storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         set({ loading: true, loadError: false });
         try {
-          const { data } = await supabase.from('coupons').select('*');
+          const { data } = await supabase.from('coupons').select('*').eq('store_id', sid);
           if (data && data.length > 0) {
             set({ coupons: data.map(fromDB), loading: false });
           } else {
-            await supabase.from('coupons').upsert(get().coupons.map(toDB));
+            await supabase.from('coupons').upsert(get().coupons.map(c => ({ ...toDB(c), store_id: sid })));
             set({ loading: false });
           }
         } catch (err) {
@@ -53,11 +56,12 @@ export const useCouponsStore = create<CouponsState>()(
         }
       },
 
-      addCoupon: async (c) => {
+      addCoupon: async (c, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const prev = get().coupons;
         set((s) => ({ coupons: [...s.coupons, c] }));
         try {
-          await supabase.from('coupons').insert(toDB(c));
+          await supabase.from('coupons').insert({ ...toDB(c), store_id: sid });
         } catch (err) {
           set({ coupons: prev });
           throw err;

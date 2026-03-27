@@ -3,13 +3,28 @@ import { LayoutDashboard, Package, ShoppingBag, MapPin, Tag, Layers, Clock, Sett
 import { useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { StoreProvider, useStoreCtx } from '@/contexts/StoreContext';
+import { useStoreConfigStore } from '@/store/storeConfigStore';
+import { useProductsStore } from '@/store/productsStore';
+import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
+import { useCouponsStore } from '@/store/couponsStore';
+import { useHoursStore } from '@/store/hoursStore';
+import { useOrderStore } from '@/store/orderStore';
 
-export default function AdminLayout() {
+function AdminLayoutInner() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { slug } = useParams<{ slug: string }>();
+  const { storeId, storeStatus, isLoading: storeLoading } = useStoreCtx();
+
+  const initConfig = useStoreConfigStore((s) => s.initFromDB);
+  const initProducts = useProductsStore((s) => s.initFromDB);
+  const initNeighborhoods = useNeighborhoodsStore((s) => s.initFromDB);
+  const initCoupons = useCouponsStore((s) => s.initFromDB);
+  const initHours = useHoursStore((s) => s.initFromDB);
+  const initOrders = useOrderStore((s) => s.initFromDB);
 
   const navItems = [
     { path: `/${slug}/admin`, icon: LayoutDashboard, label: 'Dashboard' },
@@ -50,6 +65,19 @@ export default function AdminLayout() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Initialise stores with storeId once it is resolved
+  useEffect(() => {
+    if (!storeId || storeLoading) return;
+    Promise.all([
+      initConfig(storeId),
+      initProducts(storeId),
+      initNeighborhoods(storeId),
+      initCoupons(storeId),
+      initHours(storeId),
+      initOrders(storeId),
+    ]).catch(() => {});
+  }, [storeId, storeLoading]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate(`/${slug}/admin/login`);
@@ -64,6 +92,17 @@ export default function AdminLayout() {
   }
 
   if (!session) return null;
+
+  if (storeStatus === 'suspended') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-destructive">Loja Suspensa</h1>
+          <p className="mt-2 text-muted-foreground">Esta loja foi suspensa. Entre em contato com o suporte.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -120,5 +159,14 @@ export default function AdminLayout() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function AdminLayout() {
+  const { slug } = useParams<{ slug: string }>();
+  return (
+    <StoreProvider slug={slug ?? ''}>
+      <AdminLayoutInner />
+    </StoreProvider>
   );
 }

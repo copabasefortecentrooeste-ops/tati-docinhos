@@ -27,8 +27,10 @@ const fromDB = (r: Record<string, unknown>): StoreConfig => ({
   pickupNoMinOrder: (r.pickup_no_min_order as boolean) ?? true,
 });
 
-const toDB = (c: StoreConfig) => ({
-  id: 1,
+const TATY_STORE_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+const toDB = (c: StoreConfig, storeId?: string) => ({
+  store_id: storeId || TATY_STORE_ID,
   name: c.name,
   phone: c.phone,
   instagram: c.instagram,
@@ -56,8 +58,8 @@ interface StoreConfigState {
   /** True while initFromDB is in flight. Never persisted. */
   loading: boolean;
   loadError: boolean;
-  updateConfig: (updates: Partial<StoreConfig>) => Promise<void>;
-  initFromDB: () => Promise<void>;
+  updateConfig: (updates: Partial<StoreConfig>, storeId?: string) => Promise<void>;
+  initFromDB: (storeId?: string) => Promise<void>;
 }
 
 export const useStoreConfigStore = create<StoreConfigState>()(
@@ -67,14 +69,15 @@ export const useStoreConfigStore = create<StoreConfigState>()(
       loading: true,
       loadError: false,
 
-      initFromDB: async () => {
+      initFromDB: async (storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         set({ loading: true, loadError: false });
         try {
-          const { data } = await supabase.from('store_config').select('*').eq('id', 1).maybeSingle();
+          const { data } = await supabase.from('store_config').select('*').eq('store_id', sid).maybeSingle();
           if (data) {
             set({ config: fromDB(data), loading: false });
           } else {
-            await supabase.from('store_config').upsert(toDB(get().config));
+            await supabase.from('store_config').upsert(toDB(get().config, sid));
             set({ loading: false });
           }
         } catch (err) {
@@ -83,12 +86,13 @@ export const useStoreConfigStore = create<StoreConfigState>()(
         }
       },
 
-      updateConfig: async (updates) => {
+      updateConfig: async (updates, storeId?: string) => {
+        const sid = storeId || TATY_STORE_ID;
         const prev = get().config;
         const next = { ...prev, ...updates };
         set({ config: next });
         try {
-          await supabase.from('store_config').upsert(toDB(next));
+          await supabase.from('store_config').upsert(toDB(next, sid));
         } catch (err) {
           set({ config: prev });
           throw err;
