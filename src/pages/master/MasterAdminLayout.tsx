@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { LayoutDashboard, Store, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Store, Settings, LogOut, Menu, X } from 'lucide-react';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const navItems = [
-  { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { path: '/admin/lojas', icon: Store, label: 'Lojas' },
+  { path: '/admin',        icon: LayoutDashboard, label: 'Dashboard',       exact: true },
+  { path: '/admin/lojas',  icon: Store,           label: 'Lojas' },
+  { path: '/admin/config', icon: Settings,        label: 'Configurações' },
 ];
 
 export default function MasterAdminLayout() {
@@ -13,6 +15,8 @@ export default function MasterAdminLayout() {
   const location = useLocation();
   const [checking, setChecking] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  usePageTitle('Painel Master | Faça Seu Pedido Aqui');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

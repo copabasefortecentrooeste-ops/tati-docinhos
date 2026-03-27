@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { StoreProvider, useStoreCtx } from '@/contexts/StoreContext';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { useProductsStore } from '@/store/productsStore';
 import { useNeighborhoodsStore } from '@/store/neighborhoodsStore';
@@ -17,7 +18,10 @@ function AdminLayoutInner() {
   const navigate = useNavigate();
   const location = useLocation();
   const { slug } = useParams<{ slug: string }>();
-  const { storeId, storeStatus, isLoading: storeLoading } = useStoreCtx();
+  const { storeId, storeName, storeStatus, isLoading: storeLoading } = useStoreCtx();
+
+  // Título dinâmico: "Taty Docinhos — Painel Admin"
+  usePageTitle(storeName ? `${storeName} — Painel Admin` : 'Painel Admin');
 
   const initConfig = useStoreConfigStore((s) => s.initFromDB);
   const initProducts = useProductsStore((s) => s.initFromDB);

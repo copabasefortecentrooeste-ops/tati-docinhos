@@ -5,14 +5,17 @@ import {
   Smartphone, CheckCircle2, ChevronDown, ChevronUp, ArrowRight,
   Menu, X,
 } from 'lucide-react';
-import { PLATFORM, LANDING_CONTENT, whatsappLink } from '@/config/platform';
+import { PLATFORM } from '@/config/platform';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 
 const featureIcons = [ShoppingBag, Package, Tag, Clock, MessageCircle, Smartphone, BarChart2, ShoppingBag];
 
 export default function PlatformLanding() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [mobileMenu, setMobileMenu] = useState(false);
-  const c = LANDING_CONTENT;
+  const cfg = usePlatformConfig();
+  const c = cfg;
+  const wlink = cfg.wlink;
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -40,7 +43,7 @@ export default function PlatformLanding() {
               className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
               Entrar
             </Link>
-            <a href={whatsappLink()} target="_blank" rel="noopener noreferrer"
+            <a href={wlink()} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-1.5 text-sm font-bold text-white hover:bg-red-700 transition-colors">
               <MessageCircle size={15} /> Falar no WhatsApp
             </a>
@@ -66,7 +69,7 @@ export default function PlatformLanding() {
                 className="block rounded-lg border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700">
                 Entrar
               </Link>
-              <a href={whatsappLink()} target="_blank" rel="noopener noreferrer"
+              <a href={wlink()} target="_blank" rel="noopener noreferrer"
                 className="block rounded-lg bg-red-600 px-4 py-2 text-center text-sm font-bold text-white">
                 Falar no WhatsApp
               </a>
@@ -96,7 +99,7 @@ export default function PlatformLanding() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href={whatsappLink()} target="_blank" rel="noopener noreferrer"
+            <a href={wlink()} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-8 py-4 text-base font-bold text-white hover:bg-red-700 transition-colors shadow-lg shadow-red-200">
               <MessageCircle size={20} /> {c.hero.cta1.label}
             </a>
@@ -241,7 +244,7 @@ export default function PlatformLanding() {
                     </li>
                   ))}
                 </ul>
-                <a href={whatsappLink(`Olá! Tenho interesse no plano ${plan.name}. Pode me enviar uma proposta?`)}
+                <a href={wlink(`Olá! Tenho interesse no plano ${plan.name}. Pode me enviar uma proposta?`)}
                   target="_blank" rel="noopener noreferrer"
                   className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${
                     plan.highlight
@@ -293,11 +296,11 @@ export default function PlatformLanding() {
           </h2>
           <p className="mb-10 text-lg text-gray-400">{c.finalCta.sub}</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href={whatsappLink()} target="_blank" rel="noopener noreferrer"
+            <a href={wlink()} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-8 py-4 text-base font-bold text-white hover:bg-red-700 transition-colors shadow-lg shadow-red-900/30">
               <MessageCircle size={20} /> {c.finalCta.cta1.label}
             </a>
-            <a href={whatsappLink(c.finalCta.cta2.msg)} target="_blank" rel="noopener noreferrer"
+            <a href={wlink(c.finalCta.cta2.msg)} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-700 px-8 py-4 text-base font-semibold text-white hover:border-red-500 hover:bg-red-600/10 transition-colors">
               {c.finalCta.cta2.label} <ArrowRight size={18} />
             </a>
@@ -331,7 +334,7 @@ export default function PlatformLanding() {
       </footer>
 
       {/* ── BOTÃO WHATSAPP FLUTUANTE ────────────────────────── */}
-      <a href={whatsappLink()} target="_blank" rel="noopener noreferrer"
+      <a href={wlink()} target="_blank" rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white shadow-lg shadow-green-900/30 hover:bg-green-600 hover:scale-110 transition-all"
         title="Falar no WhatsApp">
         <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7">

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Copy, Check, ShoppingBag, BookOpen, MapPin, Phone } from 'lucide-react';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { useHoursStore } from '@/store/hoursStore';
 import { getStoreStatus } from '@/lib/storeStatus';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export default function StoreLanding() {
   const { slug } = useParams<{ slug: string }>();
@@ -37,6 +38,12 @@ export default function StoreLanding() {
   };
 
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pageUrl)}&bgcolor=ffffff&color=1a1a1a&margin=6`;
+
+  // Título dinâmico por tenant
+  usePageTitle(
+    config.name ? `${config.name} | Delivery Online` : 'Faça Seu Pedido Aqui',
+    config.name ? `Faça seu pedido online em ${config.name}.` : undefined,
+  );
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary px-4 py-12">

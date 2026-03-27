@@ -262,7 +262,7 @@ export default function AdminWhatsApp() {
                 </label>
                 <input
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="5567999999999"
+                  placeholder="5511999000000"
                   value={connForm.fallbackWhatsappNumber}
                   onChange={(e) => setConnForm((f) => ({ ...f, fallbackWhatsappNumber: e.target.value }))}
                 />

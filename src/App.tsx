@@ -34,6 +34,7 @@ import MasterAdminLogin from "@/pages/master/MasterAdminLogin";
 import MasterAdminLayout from "@/pages/master/MasterAdminLayout";
 import MasterDashboard from "@/pages/master/MasterDashboard";
 import MasterStores from "@/pages/master/MasterStores";
+import MasterConfig from "@/pages/master/MasterConfig";
 import { useInitApp } from "@/hooks/useInitApp";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ function AppInner() {
         <Route path="/admin" element={<MasterAdminLayout />}>
           <Route index element={<MasterDashboard />} />
           <Route path="lojas" element={<MasterStores />} />
+          <Route path="config" element={<MasterConfig />} />
         </Route>
         <Route path="/:slug" element={<StoreLanding />} />
         <Route path="/:slug/cardapio" element={<ShareableCatalog />} />
