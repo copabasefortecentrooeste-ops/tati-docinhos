@@ -52,7 +52,8 @@ export default function CustomerProfile() {
     }
   }, [customer]);
 
-  if (loading) {
+  // Show spinner while loading OR while session exists but customer profile hasn't loaded yet
+  if (loading || (session && !customer)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

@@ -17,7 +17,7 @@ export default function CustomerLogin() {
   const routes = tenantRoutes(slug);
   const returnTo = searchParams.get('returnTo') || routes.account;
 
-  const { signIn, signUp, session } = useCustomerStore();
+  const { signIn, signUp, session, customer, loading: authLoading } = useCustomerStore();
   const { config } = useStoreConfigStore();
   const deliveryMode = config.deliveryMode ?? 'city_only';
   const defaultCity = config.defaultCity ?? 'Pitangui';
@@ -28,10 +28,11 @@ export default function CustomerLogin() {
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in — wait for customer profile to load too,
+  // otherwise navigating while customer=null causes a "not logged in" flash loop
   useEffect(() => {
-    if (session) navigate(returnTo, { replace: true });
-  }, [session, navigate, returnTo]);
+    if (!authLoading && session && customer) navigate(returnTo, { replace: true });
+  }, [session, customer, authLoading, navigate, returnTo]);
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
