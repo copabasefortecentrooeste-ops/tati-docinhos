@@ -3,8 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Store, Plus, Search, ExternalLink, Eye, EyeOff, RefreshCw, PauseCircle } from 'lucide-react';
 
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3ZnVsaWxyYnp5cHdqdnRybHRqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzYwNDg2NiwiZXhwIjoyMDg5MTgwODY2fQ.xNqsVKF6QHur_knNvNy0PBmHzwSiBd3-pt2mGpQj27s';
-const SUPABASE_URL = 'https://awfulilrbzypwjvtrltj.supabase.co';
+// SERVICE_KEY removido do frontend — operação privilegiada agora é
+// tratada pela Edge Function "create-store" no servidor.
 
 const RESERVED_SLUGS = [
   'admin','login','master','api','planos','contato','suporte','sobre','demo',
@@ -141,84 +141,39 @@ export default function MasterStores() {
     if (slugErr) { setSlugError(slugErr); return; }
     if (!form.name.trim()) { toast({ title: 'Nome obrigatório', variant: 'destructive' }); return; }
     if (!form.adminEmail.trim()) { toast({ title: 'E-mail do admin obrigatório', variant: 'destructive' }); return; }
-    if (form.adminPassword.length < 6) { toast({ title: 'Senha deve ter ao menos 6 caracteres', variant: 'destructive' }); return; }
+    if (form.adminPassword.length < 8) { toast({ title: 'Senha deve ter ao menos 8 caracteres', variant: 'destructive' }); return; }
 
     setSaving(true);
 
-    // 1. Generate UUID for the new store
-    const newStoreId = crypto.randomUUID();
-
-    // 2. Insert into stores table
-    const { error: storeErr } = await supabase.from('stores').insert({
-      id: newStoreId,
-      slug: form.slug,
-      name: form.name.trim(),
-      owner_email: form.adminEmail.trim(),
-      segment: form.segment,
-      plan: form.plan,
-      status: 'active',
-      trial_ends_at: form.trialEndsAt || null,
+    // Toda a criação privilegiada acontece na Edge Function server-side.
+    // O service_role key nunca toca o browser.
+    const { data, error } = await supabase.functions.invoke('create-store', {
+      body: {
+        name: form.name.trim(),
+        slug: form.slug,
+        segment: form.segment,
+        plan: form.plan,
+        trialEndsAt: form.trialEndsAt || null,
+        adminEmail: form.adminEmail.trim(),
+        adminPassword: form.adminPassword,
+      },
     });
 
-    if (storeErr) {
-      toast({ title: 'Erro ao criar loja', description: storeErr.message, variant: 'destructive' });
-      setSaving(false);
+    setSaving(false);
+
+    const serverError = (data as Record<string, unknown> | null)?.error as string | undefined;
+    if (error || serverError) {
+      toast({
+        title: 'Erro ao criar loja',
+        description: serverError ?? error?.message ?? 'Erro desconhecido',
+        variant: 'destructive',
+      });
       return;
     }
-
-    // 3. Create admin user via Supabase Admin Auth API
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${SERVICE_KEY}`,
-        'apikey': SERVICE_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: form.adminEmail.trim(),
-        password: form.adminPassword,
-        app_metadata: { role: 'admin', store_id: newStoreId },
-      }),
-    });
-
-    if (!userRes.ok) {
-      const errData = await userRes.json().catch(() => ({}));
-      toast({ title: 'Loja criada mas erro ao criar usuário', description: (errData as Record<string, unknown>).msg as string ?? 'Erro desconhecido', variant: 'destructive' });
-    }
-
-    // 4. Create default store_config
-    await supabase.from('store_config').insert({
-      store_id: newStoreId,
-      name: form.name.trim(),
-      phone: '',
-      instagram: '',
-      address: '',
-      pix_key: '',
-      delivery_policy: 'Faço entregas na cidade.',
-      delivery_mode: 'free',
-      default_city: '',
-      default_state: '',
-      default_cep: '',
-      manual_status: null,
-      block_orders_outside_hours: false,
-      closed_message: 'Estamos fechados no momento.',
-      operational_message: '',
-    });
-
-    // 5. Create default business_hours (7 days)
-    const defaultHours = [0, 1, 2, 3, 4, 5, 6].map(day => ({
-      store_id: newStoreId,
-      day_of_week: day,
-      open_time: day === 0 ? null : '09:00',
-      close_time: day === 0 ? null : '18:00',
-      active: day !== 0,
-    }));
-    await supabase.from('business_hours').insert(defaultHours);
 
     toast({ title: 'Loja criada com sucesso!', description: `${form.name} está pronta em /${form.slug}` });
     setShowDialog(false);
     setForm(emptyForm);
-    setSaving(false);
     loadStores();
   };
 
@@ -391,7 +346,7 @@ export default function MasterStores() {
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Senha inicial *</label>
                 <div className="relative">
-                  <input type={showPass ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={form.adminPassword}
+                  <input type={showPass ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" value={form.adminPassword}
                     onChange={e => setForm(f => ({ ...f, adminPassword: e.target.value }))}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring pr-10" />
                   <button type="button" onClick={() => setShowPass(!showPass)}

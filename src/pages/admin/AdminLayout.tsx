@@ -46,8 +46,10 @@ function AdminLayoutInner() {
     // Get current session on mount
     supabase.auth.getSession().then(async ({ data }) => {
       const sess = data.session;
-      if (!sess || sess.user.app_metadata?.role !== 'admin') {
-        if (sess) await supabase.auth.signOut(); // sign out non-admin user
+      const role = sess?.user.app_metadata?.role;
+      // Aceita admin de loja OU master_admin (master pode inspecionar qualquer loja)
+      if (!sess || (role !== 'admin' && role !== 'master_admin')) {
+        if (sess) await supabase.auth.signOut();
         navigate(`/${slug}/admin/login`, { replace: true });
         setIsLoading(false);
         return;
@@ -58,7 +60,8 @@ function AdminLayoutInner() {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
-      if (!s || s.user.app_metadata?.role !== 'admin') {
+      const role = s?.user.app_metadata?.role;
+      if (!s || (role !== 'admin' && role !== 'master_admin')) {
         if (s) await supabase.auth.signOut();
         navigate(`/${slug}/admin/login`, { replace: true });
       } else {
@@ -68,6 +71,18 @@ function AdminLayoutInner() {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Guard cross-store: impede admin da loja A de acessar painel da loja B
+  useEffect(() => {
+    if (!session || storeLoading || !storeId) return;
+    const role = session.user.app_metadata?.role;
+    if (role === 'master_admin') return; // master_admin pode acessar qualquer loja
+    const jwtStoreId = session.user.app_metadata?.store_id as string | undefined;
+    if (jwtStoreId && jwtStoreId !== storeId) {
+      // Conta autenticada não pertence a esta loja — redirecionar sem expor dados
+      navigate(`/${slug}/admin/login`, { replace: true });
+    }
+  }, [session, storeId, storeLoading, slug, navigate]);
 
   // Initialise stores with storeId once it is resolved
   useEffect(() => {
@@ -113,7 +128,7 @@ function AdminLayoutInner() {
       {/* Sidebar */}
       <aside className="hidden w-56 shrink-0 border-r border-border bg-card md:block">
         <div className="p-4">
-          <h2 className="font-display text-lg font-semibold text-foreground">Taty Admin</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{storeName ?? 'Admin'}</h2>
         </div>
         <nav className="mt-2 flex flex-col gap-0.5 px-2">
           {navItems.map((item) => {
