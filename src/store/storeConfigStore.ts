@@ -20,6 +20,11 @@ const fromDB = (r: Record<string, unknown>): StoreConfig => ({
   blockOrdersOutsideHours: (r.block_orders_outside_hours as boolean) ?? false,
   closedMessage: (r.closed_message as string) || 'Estamos fechados no momento.',
   operationalMessage: (r.operational_message as string) || '',
+  deliveryFeeMode: (r.delivery_fee_mode as StoreConfig['deliveryFeeMode']) ?? 'by_neighborhood',
+  flatDeliveryFee: (r.flat_delivery_fee as number) ?? 0,
+  minOrderValue: (r.min_order_value as number) ?? 0,
+  minOrderMessage: (r.min_order_message as string) ?? 'Valor mínimo não atingido.',
+  pickupNoMinOrder: (r.pickup_no_min_order as boolean) ?? true,
 });
 
 const toDB = (c: StoreConfig) => ({
@@ -39,6 +44,11 @@ const toDB = (c: StoreConfig) => ({
   block_orders_outside_hours: c.blockOrdersOutsideHours ?? false,
   closed_message: c.closedMessage ?? 'Estamos fechados no momento.',
   operational_message: c.operationalMessage ?? '',
+  delivery_fee_mode: c.deliveryFeeMode ?? 'by_neighborhood',
+  flat_delivery_fee: c.flatDeliveryFee ?? 0,
+  min_order_value: c.minOrderValue ?? 0,
+  min_order_message: c.minOrderMessage ?? 'Valor mínimo não atingido.',
+  pickup_no_min_order: c.pickupNoMinOrder ?? true,
 });
 
 interface StoreConfigState {

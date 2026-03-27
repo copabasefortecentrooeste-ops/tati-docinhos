@@ -17,12 +17,70 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const { config } = useStoreConfigStore();
   const inStock = product.inStock !== false; // defaults to true
 
-  const waFallbackUrl = !inStock
-    ? buildWaLink(
-        config.phone || '',
-        `Olá! Tenho interesse no produto *${product.name}* e gostaria de verificar a disponibilidade.`,
-      )
-    : undefined;
+  // Managed stock: when stockQty reaches 0 and selling when empty is not allowed
+  const managedOutOfStock =
+    product.manageStock === true &&
+    (product.stockQty ?? null) === 0 &&
+    product.allowSellWhenEmpty !== true;
+
+  const showLowStock =
+    product.manageStock === true &&
+    (product.stockQty ?? null) !== null &&
+    (product.stockQty as number) > 0 &&
+    (product.stockQty as number) <= (product.stockAlertQty ?? 5);
+
+  const effectivelyInStock = inStock && !managedOutOfStock;
+
+  const waFallbackUrl =
+    !inStock || (managedOutOfStock && product.emptyStockBehavior === 'whatsapp')
+      ? buildWaLink(
+          config.phone || '',
+          `Olá! Tenho interesse no produto *${product.name}* e gostaria de verificar a disponibilidade.`,
+        )
+      : undefined;
+
+  // If managed stock is 0 and behavior is 'unavailable', treat as unavailable
+  if (managedOutOfStock && product.emptyStockBehavior !== 'whatsapp') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05, duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+      >
+        <div className="relative overflow-hidden rounded-card bg-card shadow-card">
+          <ProductImage product={product} inStock={false} badgeText="Indisponível" />
+          <ProductInfo product={product} />
+        </div>
+      </motion.div>
+    );
+  }
+
+  // If managed stock is 0 and behavior is 'whatsapp'
+  if (managedOutOfStock && product.emptyStockBehavior === 'whatsapp') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05, duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+      >
+        <div className="relative overflow-hidden rounded-card bg-card shadow-card">
+          <ProductImage product={product} inStock={false} badgeText="Verificar disponibilidade" />
+          <ProductInfo product={product} />
+          <div className="border-t border-border bg-muted/40 px-4 py-3">
+            <a
+              href={waFallbackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-button bg-green-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-green-700"
+            >
+              <MessageCircle size={13} />
+              Verificar disponibilidade
+            </a>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -30,11 +88,11 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
     >
-      <div className={`relative overflow-hidden rounded-card bg-card shadow-card transition-shadow duration-300 ${inStock ? 'hover:shadow-elevated' : ''}`}>
+      <div className={`relative overflow-hidden rounded-card bg-card shadow-card transition-shadow duration-300 ${effectivelyInStock ? 'hover:shadow-elevated' : ''}`}>
         {/* Card body — only links when in stock */}
-        {inStock ? (
+        {effectivelyInStock ? (
           <Link to={`/produto/${product.id}`} className="group block">
-            <ProductImage product={product} inStock />
+            <ProductImage product={product} inStock showLowStock={showLowStock} />
             <ProductInfo product={product} />
           </Link>
         ) : (
@@ -62,7 +120,17 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
 // ── Sub-components ───────────────────────────────────────────
 
-function ProductImage({ product, inStock }: { product: Product; inStock: boolean }) {
+function ProductImage({
+  product,
+  inStock,
+  badgeText,
+  showLowStock,
+}: {
+  product: Product;
+  inStock: boolean;
+  badgeText?: string;
+  showLowStock?: boolean;
+}) {
   return (
     <div className="relative aspect-[4/5] overflow-hidden">
       <img
@@ -78,7 +146,12 @@ function ProductImage({ product, inStock }: { product: Product; inStock: boolean
       )}
       {!inStock && (
         <span className="absolute left-3 top-3 rounded-button bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-          Indisponível
+          {badgeText ?? 'Indisponível'}
+        </span>
+      )}
+      {inStock && showLowStock && (
+        <span className="absolute left-3 top-3 rounded-button bg-orange-500 px-2.5 py-1 text-[11px] font-semibold text-white">
+          Últimas unidades
         </span>
       )}
     </div>

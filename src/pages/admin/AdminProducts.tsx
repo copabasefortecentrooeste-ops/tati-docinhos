@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Pencil, Trash2, X, Save, Upload, Star, TrendingUp, ChevronDown, ChevronUp, Tag, WifiOff, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, Upload, Star, TrendingUp, ChevronDown, ChevronUp, Tag, WifiOff, RefreshCw, BarChart2 } from 'lucide-react';
 import { useProductsStore } from '@/store/productsStore';
 import { compressImage } from '@/lib/imageUtils';
 import { uploadProductImage } from '@/lib/storageUtils';
@@ -7,7 +7,8 @@ import { formatPrice } from '@/lib/format';
 import { mapSupabaseError } from '@/lib/supabaseError';
 import { inputCls } from '@/lib/adminStyles';
 import { toast } from '@/hooks/use-toast';
-import type { Product, Category } from '@/types';
+import { supabase } from '@/lib/supabase';
+import type { Product, Category, StockMovement } from '@/types';
 
 // ── helpers ───────────────────────────────────────────────
 function slugify(text: string) {
@@ -22,12 +23,16 @@ function slugify(text: string) {
 type ProductForm = {
   name: string; description: string; basePrice: string;
   minQuantity: string; categoryId: string; featured: boolean; bestSeller: boolean; image: string;
+  manageStock: boolean; stockQty: string; stockAlertQty: string;
+  allowSellWhenEmpty: boolean; emptyStockBehavior: 'unavailable' | 'whatsapp';
 };
 type CatForm = { name: string; description: string };
 
 const emptyProduct = (): ProductForm => ({
   name: '', description: '', basePrice: '', minQuantity: '1',
   categoryId: '', featured: false, bestSeller: false, image: '',
+  manageStock: false, stockQty: '', stockAlertQty: '5',
+  allowSellWhenEmpty: false, emptyStockBehavior: 'unavailable',
 });
 const emptyCat = (): CatForm => ({ name: '', description: '' });
 
@@ -36,6 +41,11 @@ function productToForm(p: Product): ProductForm {
     name: p.name, description: p.description, basePrice: String(p.basePrice),
     minQuantity: String(p.minQuantity), categoryId: p.categoryId,
     featured: p.featured, bestSeller: p.bestSeller, image: p.image,
+    manageStock: p.manageStock ?? false,
+    stockQty: p.stockQty != null ? String(p.stockQty) : '',
+    stockAlertQty: String(p.stockAlertQty ?? 5),
+    allowSellWhenEmpty: p.allowSellWhenEmpty ?? false,
+    emptyStockBehavior: p.emptyStockBehavior ?? 'unavailable',
   };
 }
 
@@ -71,6 +81,15 @@ export default function AdminProducts() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // ── stock movements state ─────────────────────────────────
+  const [movementsProductId, setMovementsProductId] = useState<string | null>(null);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [loadingMovements, setLoadingMovements] = useState(false);
+  const [movType, setMovType] = useState<'entrada' | 'saida' | 'ajuste'>('ajuste');
+  const [movQty, setMovQty] = useState('');
+  const [movNote, setMovNote] = useState('');
+  const [savingMov, setSavingMov] = useState(false);
 
   // ── category handlers ─────────────────────────────────────
   const openAddCat = () => { setCatForm(emptyCat()); setEditingCatId(null); setAddingCat(true); };
@@ -178,6 +197,11 @@ export default function AdminProducts() {
       categoryId: form.categoryId, featured: form.featured, bestSeller: form.bestSeller,
       image: imageUrl,
       options: editingId ? (products.find((p) => p.id === editingId)?.options ?? []) : [],
+      manageStock: form.manageStock,
+      stockQty: form.manageStock && form.stockQty !== '' ? parseInt(form.stockQty) : null,
+      stockAlertQty: parseInt(form.stockAlertQty) || 5,
+      allowSellWhenEmpty: form.allowSellWhenEmpty,
+      emptyStockBehavior: form.emptyStockBehavior,
     };
 
     try {
@@ -206,6 +230,76 @@ export default function AdminProducts() {
       toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
     }
     setConfirmDelete(null);
+  };
+
+  const openMovements = async (productId: string) => {
+    setMovementsProductId(productId);
+    setMovements([]);
+    setMovQty(''); setMovNote(''); setMovType('ajuste');
+    setLoadingMovements(true);
+    try {
+      const { data } = await supabase
+        .from('stock_movements')
+        .select('*')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false });
+      if (data) {
+        setMovements(data.map((r: Record<string, unknown>) => ({
+          id: r.id as string,
+          productId: r.product_id as string,
+          type: r.type as StockMovement['type'],
+          qty: r.qty as number,
+          note: r.note as string | undefined,
+          createdAt: r.created_at as string,
+        })));
+      }
+    } catch {
+      toast({ title: 'Erro ao carregar movimentações', variant: 'destructive' });
+    } finally {
+      setLoadingMovements(false);
+    }
+  };
+
+  const handleAddMovement = async () => {
+    const qty = parseInt(movQty);
+    if (!movementsProductId || isNaN(qty) || qty <= 0) {
+      toast({ title: 'Quantidade inválida', variant: 'destructive' });
+      return;
+    }
+    setSavingMov(true);
+    try {
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .insert({ product_id: movementsProductId, type: movType, qty, note: movNote.trim() || null })
+        .select()
+        .single();
+      if (error) throw error;
+      // Adjust stock_qty in products table
+      const product = products.find((p) => p.id === movementsProductId);
+      if (product && product.manageStock) {
+        const currentQty = product.stockQty ?? 0;
+        let newQty = currentQty;
+        if (movType === 'entrada') newQty = currentQty + qty;
+        else if (movType === 'saida') newQty = Math.max(0, currentQty - qty);
+        else newQty = qty; // ajuste = set absolute
+        await updateProduct(movementsProductId, { stockQty: newQty });
+      }
+      const mov: StockMovement = {
+        id: (data as Record<string, unknown>).id as string,
+        productId: movementsProductId,
+        type: movType, qty,
+        note: movNote.trim() || undefined,
+        createdAt: (data as Record<string, unknown>).created_at as string,
+      };
+      setMovements((prev) => [mov, ...prev]);
+      setMovQty(''); setMovNote('');
+      toast({ title: 'Movimentação registrada!' });
+    } catch (err) {
+      const mapped = mapSupabaseError(err);
+      toast({ title: mapped.title, description: mapped.description, variant: 'destructive' });
+    } finally {
+      setSavingMov(false);
+    }
   };
 
   const showProductForm = adding || editingId !== null;
@@ -387,6 +481,79 @@ export default function AdminProducts() {
             </label>
           </div>
 
+          {/* Stock control section */}
+          <div className="mt-5 rounded-card border border-border bg-muted/20 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Controlar estoque</p>
+                <p className="text-xs text-muted-foreground">Habilita rastreamento de quantidade em estoque</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, manageStock: !f.manageStock }))}
+                className={`relative h-6 w-11 rounded-full transition-colors ${form.manageStock ? 'bg-primary' : 'bg-muted'}`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.manageStock ? 'translate-x-5' : 'translate-x-0.5'}`}
+                />
+              </button>
+            </div>
+
+            {form.manageStock && (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Quantidade atual</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.stockQty}
+                    onChange={(e) => setForm((f) => ({ ...f, stockQty: e.target.value }))}
+                    className={inputCls}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Alerta de estoque mínimo</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.stockAlertQty}
+                    onChange={(e) => setForm((f) => ({ ...f, stockAlertQty: e.target.value }))}
+                    className={inputCls}
+                  />
+                </div>
+                <div className="sm:col-span-2 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-foreground">Permitir venda quando zerado</p>
+                    <p className="text-xs text-muted-foreground">Se desativado, produto ficará indisponível ou redireciona para WhatsApp</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, allowSellWhenEmpty: !f.allowSellWhenEmpty }))}
+                    className={`relative h-6 w-11 rounded-full transition-colors ${form.allowSellWhenEmpty ? 'bg-primary' : 'bg-muted'}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.allowSellWhenEmpty ? 'translate-x-5' : 'translate-x-0.5'}`}
+                    />
+                  </button>
+                </div>
+                {!form.allowSellWhenEmpty && (
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs text-muted-foreground">Quando zerar o estoque</label>
+                    <select
+                      value={form.emptyStockBehavior}
+                      onChange={(e) => setForm((f) => ({ ...f, emptyStockBehavior: e.target.value as 'unavailable' | 'whatsapp' }))}
+                      className={inputCls}
+                    >
+                      <option value="unavailable">Indisponível no cardápio</option>
+                      <option value="whatsapp">Mostrar botão WhatsApp</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <button onClick={handleSave} disabled={saving} className="mt-5 flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50">
             <Save size={16} />
             {saving ? 'Salvando…' : editingId ? 'Salvar Alterações' : 'Adicionar Produto'}
@@ -420,6 +587,15 @@ export default function AdminProducts() {
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
+                  {product.manageStock && (
+                    <button
+                      onClick={() => openMovements(product.id)}
+                      title="Ver movimentações de estoque"
+                      className="flex h-8 w-8 items-center justify-center rounded-button border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <BarChart2 size={14} />
+                    </button>
+                  )}
                   <button onClick={() => openEdit(product)} className="flex h-8 w-8 items-center justify-center rounded-button border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Pencil size={14} /></button>
                   <button onClick={() => setConfirmDelete(product.id)} className="flex h-8 w-8 items-center justify-center rounded-button border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 size={14} /></button>
                 </div>
@@ -438,6 +614,92 @@ export default function AdminProducts() {
 
       {products.length === 0 && !showProductForm && (
         <p className="mt-10 text-center text-sm text-muted-foreground">Nenhum produto cadastrado.</p>
+      )}
+
+      {/* ── Stock Movements Dialog ──────────────────────────── */}
+      {movementsProductId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-card border border-border bg-card p-5 shadow-elevated max-h-[80vh] flex flex-col">
+            <div className="mb-4 flex items-center justify-between shrink-0">
+              <h2 className="text-base font-semibold text-foreground">
+                Movimentações — {products.find((p) => p.id === movementsProductId)?.name}
+              </h2>
+              <button onClick={() => setMovementsProductId(null)} className="text-muted-foreground hover:text-foreground">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Add movement */}
+            <div className="mb-4 rounded-card border border-border bg-muted/20 p-3 shrink-0">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Registrar movimentação</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <select
+                  value={movType}
+                  onChange={(e) => setMovType(e.target.value as typeof movType)}
+                  className="rounded-button border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="entrada">Entrada</option>
+                  <option value="saida">Saída</option>
+                  <option value="ajuste">Ajuste (definir)</option>
+                </select>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Quantidade"
+                  value={movQty}
+                  onChange={(e) => setMovQty(e.target.value)}
+                  className="rounded-button border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <input
+                  type="text"
+                  placeholder="Nota (opcional)"
+                  value={movNote}
+                  onChange={(e) => setMovNote(e.target.value)}
+                  className="rounded-button border border-input bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <button
+                onClick={handleAddMovement}
+                disabled={savingMov}
+                className="mt-2 flex items-center gap-1.5 rounded-button bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                <Save size={12} /> {savingMov ? 'Salvando…' : 'Registrar'}
+              </button>
+            </div>
+
+            {/* Movements list */}
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {loadingMovements && (
+                <p className="text-center text-xs text-muted-foreground py-4">Carregando…</p>
+              )}
+              {!loadingMovements && movements.length === 0 && (
+                <p className="text-center text-xs text-muted-foreground py-4">Nenhuma movimentação registrada.</p>
+              )}
+              {movements.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 rounded-button border border-border bg-background px-3 py-2">
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                      m.type === 'entrada'
+                        ? 'bg-green-100 text-green-700'
+                        : m.type === 'saida'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}
+                  >
+                    {m.type}
+                  </span>
+                  <span className="tabular-nums text-sm font-medium text-foreground">
+                    {m.type === 'entrada' ? '+' : m.type === 'saida' ? '-' : '='}{m.qty}
+                  </span>
+                  {m.note && <span className="flex-1 text-xs text-muted-foreground truncate">{m.note}</span>}
+                  <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                    {new Date(m.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

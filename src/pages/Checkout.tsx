@@ -76,7 +76,12 @@ export default function Checkout() {
 
   const activeNeighborhoods = neighborhoods.filter((n) => n.active);
   const selectedNeighborhood = activeNeighborhoods.find((n) => n.id === neighborhoodId);
-  const deliveryFee = isPickup ? 0 : (selectedNeighborhood?.fee || 0);
+  const deliveryFeeMode = config.deliveryFeeMode ?? 'by_neighborhood';
+  const deliveryFee = isPickup
+    ? 0
+    : deliveryFeeMode === 'flat'
+    ? (config.flatDeliveryFee ?? 0)
+    : (selectedNeighborhood?.fee || 0);
   const subtotal = getSubtotal();
 
   const discount = useMemo(() => {
@@ -115,6 +120,24 @@ export default function Checkout() {
         description: storeStatus.message,
         variant: 'destructive',
       });
+      return;
+    }
+
+    // Minimum order validation
+    const minOrderValue = config.minOrderValue ?? 0;
+    const pickupNoMinOrder = config.pickupNoMinOrder ?? true;
+    if (!isPickup && minOrderValue > 0 && subtotal < minOrderValue) {
+      const minFormatted = minOrderValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const msg = (config.minOrderMessage ?? 'O valor mínimo do pedido para entrega é R$ {min}.')
+        .replace('{min}', minFormatted);
+      toast({ title: 'Valor mínimo não atingido', description: msg, variant: 'destructive' });
+      return;
+    }
+    if (isPickup && !(pickupNoMinOrder) && minOrderValue > 0 && subtotal < minOrderValue) {
+      const minFormatted = minOrderValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const msg = (config.minOrderMessage ?? 'O valor mínimo do pedido é R$ {min}.')
+        .replace('{min}', minFormatted);
+      toast({ title: 'Valor mínimo não atingido', description: msg, variant: 'destructive' });
       return;
     }
 
@@ -334,7 +357,7 @@ export default function Checkout() {
                 <option value="">Selecione o bairro</option>
                 {activeNeighborhoods.map((n) => (
                   <option key={n.id} value={n.id}>
-                    {n.name} — {formatPrice(n.fee)}
+                    {n.name}{deliveryFeeMode === 'by_neighborhood' ? ` — ${formatPrice(n.fee)}` : ''}
                   </option>
                 ))}
               </select>

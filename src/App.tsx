@@ -25,6 +25,7 @@ import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminHours from "./pages/admin/AdminHours";
 import AdminConfig from "./pages/admin/AdminConfig";
 import AdminWhatsApp from "./pages/admin/AdminWhatsApp";
+import AdminCategories from "./pages/admin/AdminCategories";
 import StoreLanding from "./pages/StoreLanding";
 import ShareableCatalog from "./pages/ShareableCatalog";
 import NotFound from "./pages/NotFound";
@@ -54,6 +55,7 @@ function AppInner() {
           <Route index element={<AdminDashboard />} />
           <Route path="pedidos" element={<AdminOrders />} />
           <Route path="produtos" element={<AdminProducts />} />
+          <Route path="categorias" element={<AdminCategories />} />
           <Route path="bairros" element={<AdminNeighborhoods />} />
           <Route path="cupons" element={<AdminCoupons />} />
           <Route path="horarios" element={<AdminHours />} />

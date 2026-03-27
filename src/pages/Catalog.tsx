@@ -6,7 +6,10 @@ import ProductCard from '@/components/product/ProductCard';
 import { motion } from 'framer-motion';
 
 export default function Catalog() {
-  const { products, categories } = useProductsStore();
+  const { products, categories: allCategories } = useProductsStore();
+  const categories = allCategories
+    .filter((c) => c.active !== false)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCat = searchParams.get('cat') || '';
   const [query, setQuery] = useState('');

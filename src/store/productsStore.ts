@@ -19,6 +19,10 @@ const prodFromDB = (r: Record<string, unknown>): Product => ({
   inStock: r.in_stock !== undefined ? (r.in_stock as boolean) : true,
   stockQty: r.stock_qty as number | null | undefined,
   active: r.active !== undefined ? (r.active as boolean) : true,
+  manageStock: (r.manage_stock as boolean) ?? false,
+  stockAlertQty: (r.stock_alert_qty as number) ?? 5,
+  allowSellWhenEmpty: (r.allow_sell_when_empty as boolean) ?? false,
+  emptyStockBehavior: (r.empty_stock_behavior as 'unavailable' | 'whatsapp') ?? 'unavailable',
 });
 
 const prodToDB = (p: Product) => ({
@@ -35,6 +39,10 @@ const prodToDB = (p: Product) => ({
   in_stock: p.inStock ?? true,
   stock_qty: p.stockQty ?? null,
   active: p.active ?? true,
+  manage_stock: p.manageStock ?? false,
+  stock_alert_qty: p.stockAlertQty ?? 5,
+  allow_sell_when_empty: p.allowSellWhenEmpty ?? false,
+  empty_stock_behavior: p.emptyStockBehavior ?? 'unavailable',
 });
 
 const catFromDB = (r: Record<string, unknown>): Category => ({
@@ -43,10 +51,13 @@ const catFromDB = (r: Record<string, unknown>): Category => ({
   slug: r.slug as string,
   image: (r.image as string) ?? '',
   description: (r.description as string) ?? '',
+  sortOrder: (r.sort_order as number) ?? 0,
+  active: (r.active as boolean) ?? true,
 });
 
 const catToDB = (c: Category) => ({
   id: c.id, name: c.name, slug: c.slug, image: c.image ?? '', description: c.description ?? '',
+  sort_order: c.sortOrder ?? 0, active: c.active ?? true,
 });
 
 // ── Store ──────────────────────────────────────────────────

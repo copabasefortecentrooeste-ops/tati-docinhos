@@ -133,6 +133,26 @@ export const useOrderStore = create<OrderState>()(
         set((s) => ({ orders: [order, ...s.orders] }));
         try {
           await supabase.from('orders').insert(toDB(order));
+          // Decrement stock for managed-stock products
+          for (const item of order.items) {
+            const product = item.product;
+            if (product.manageStock === true) {
+              const currentQty = product.stockQty ?? 0;
+              const newQty = Math.max(0, currentQty - item.quantity);
+              // Update stock_qty in DB
+              await supabase
+                .from('products')
+                .update({ stock_qty: newQty })
+                .eq('id', product.id);
+              // Insert stock movement
+              await supabase.from('stock_movements').insert({
+                product_id: product.id,
+                type: 'saida',
+                qty: item.quantity,
+                note: `Pedido #${order.code}`,
+              });
+            }
+          }
         } catch (err) {
           throw err;
         }

@@ -264,6 +264,128 @@ export default function AdminConfig() {
         </div>
       </div>
 
+      {/* Delivery Fee Mode */}
+      <div className="mt-8">
+        <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-foreground">
+          <Truck size={18} /> Taxa de Entrega
+        </h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Escolha se a taxa de entrega é um valor fixo único ou varia por bairro.
+        </p>
+
+        <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+          <p className="mb-3 text-xs font-medium text-muted-foreground">Modo de taxa</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => setForm((f) => ({ ...f, deliveryFeeMode: 'by_neighborhood' }))}
+              className={`rounded-card border p-4 text-left transition-colors ${
+                (form.deliveryFeeMode ?? 'by_neighborhood') === 'by_neighborhood'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-background hover:bg-muted/40'
+              }`}
+            >
+              <p className="text-sm font-medium text-foreground">🏘️ Por bairro</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Cada bairro tem sua própria taxa configurada</p>
+            </button>
+            <button
+              onClick={() => setForm((f) => ({ ...f, deliveryFeeMode: 'flat' }))}
+              className={`rounded-card border p-4 text-left transition-colors ${
+                form.deliveryFeeMode === 'flat'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-background hover:bg-muted/40'
+              }`}
+            >
+              <p className="text-sm font-medium text-foreground">💰 Taxa única</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Um valor fixo para qualquer entrega</p>
+            </button>
+          </div>
+
+          {form.deliveryFeeMode === 'flat' && (
+            <div className="mt-4">
+              <label className="mb-1.5 block text-xs text-muted-foreground">Valor fixo de entrega (R$)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.50"
+                placeholder="0.00"
+                value={form.flatDeliveryFee ?? 0}
+                onChange={(e) => setForm((f) => ({ ...f, flatDeliveryFee: parseFloat(e.target.value) || 0 }))}
+                className={inputCls}
+              />
+            </div>
+          )}
+          {(form.deliveryFeeMode ?? 'by_neighborhood') === 'by_neighborhood' && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              → Configure as taxas individuais na aba <strong>Bairros</strong>.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Minimum Order */}
+      <div className="mt-8">
+        <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-foreground">
+          <ShieldAlert size={18} /> Pedido Mínimo
+        </h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Defina o valor mínimo para pedidos de delivery.
+        </p>
+
+        <div className="space-y-3">
+          <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+            <label className="mb-1.5 block text-xs text-muted-foreground">
+              Valor mínimo do pedido para delivery (R$) — 0 = sem mínimo
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.50"
+              placeholder="0.00"
+              value={form.minOrderValue ?? 0}
+              onChange={(e) => setForm((f) => ({ ...f, minOrderValue: parseFloat(e.target.value) || 0 }))}
+              className={inputCls}
+            />
+          </div>
+
+          <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+            <label className="mb-1.5 block text-xs text-muted-foreground">
+              Mensagem quando valor mínimo não for atingido
+            </label>
+            <input
+              type="text"
+              placeholder="O valor mínimo do pedido para entrega é R$ {min}. Adicione mais itens ou escolha retirada."
+              value={form.minOrderMessage ?? ''}
+              onChange={(e) => setForm((f) => ({ ...f, minOrderMessage: e.target.value }))}
+              className={inputCls}
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">Use <code className="font-mono">{'{min}'}</code> para exibir o valor mínimo formatado.</p>
+          </div>
+
+          <div className="rounded-card border border-border bg-card p-4 shadow-soft">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Retirada sem pedido mínimo</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Se ativado, clientes que escolherem retirar no local não precisam atingir o valor mínimo.
+                </p>
+              </div>
+              <button
+                onClick={() => setForm((f) => ({ ...f, pickupNoMinOrder: !(f.pickupNoMinOrder ?? true) }))}
+                className={`relative h-6 w-11 rounded-full transition-colors ${
+                  (form.pickupNoMinOrder ?? true) ? 'bg-primary' : 'bg-muted'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    (form.pickupNoMinOrder ?? true) ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Shareable catalog link */}
       {(() => {
         const slug = config.name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '') || 'loja';

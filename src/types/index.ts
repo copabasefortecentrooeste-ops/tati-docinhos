@@ -4,6 +4,8 @@ export interface Category {
   slug: string;
   image: string;
   description?: string;
+  sortOrder?: number;
+  active?: boolean;
 }
 
 export interface ProductOption {
@@ -30,6 +32,10 @@ export interface Product {
   stockQty?: number | null;
   /** false = produto desativado no cardápio */
   active?: boolean;
+  manageStock?: boolean;
+  stockAlertQty?: number;
+  allowSellWhenEmpty?: boolean;
+  emptyStockBehavior?: 'unavailable' | 'whatsapp';
 }
 
 export type OrderStatus = 'received' | 'analyzing' | 'production' | 'delivery' | 'delivered' | 'cancelled';
@@ -138,4 +144,18 @@ export interface StoreConfig {
   closedMessage: string;
   /** Optional banner message shown when store is open */
   operationalMessage: string;
+  deliveryFeeMode?: 'flat' | 'by_neighborhood';
+  flatDeliveryFee?: number;
+  minOrderValue?: number;
+  minOrderMessage?: string;
+  pickupNoMinOrder?: boolean;
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  type: 'entrada' | 'saida' | 'ajuste';
+  qty: number;
+  note?: string;
+  createdAt: string;
 }
