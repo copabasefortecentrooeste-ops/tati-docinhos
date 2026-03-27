@@ -1,10 +1,9 @@
 // Edge Function: create-store
-// Operação privilegiada server-side para criar nova loja + admin.
+// Usa Deno.serve() e npm: prefix (compatível com Supabase Edge Runtime --no-remote)
 // O service_role key NUNCA sai do servidor — vem de variável de ambiente segura.
 // Caller deve ser master_admin (verificado via JWT).
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -17,7 +16,7 @@ const RESERVED_SLUGS = new Set([
   'perfil','termos','privacidade','not-found','404',
 ]);
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS });
@@ -90,7 +89,7 @@ serve(async (req) => {
       email: adminEmail.trim(),
       password: adminPassword,
       app_metadata: { role: 'admin', store_id: storeId },
-      email_confirm: true,   // confirmar e-mail automaticamente
+      email_confirm: true,
     });
 
     if (userErr) throw new Error(`Erro ao criar usuário: ${userErr.message}`);
@@ -115,6 +114,7 @@ serve(async (req) => {
     }
 
     // ── 9. Criar store_config padrão ─────────────────────────────────────────
+    // Usa upsert com onConflict: 'store_id' (migration 016 garante a constraint)
     const { error: configErr } = await adminClient.from('store_config').upsert({
       store_id: storeId,
       name: name.trim(),
@@ -134,11 +134,11 @@ serve(async (req) => {
     }, { onConflict: 'store_id' });
 
     if (configErr) {
-      // Não desfaz a loja — config pode ser criada depois pelo admin
       console.error('[create-store] store_config error:', configErr.message);
     }
 
     // ── 10. Criar horários padrão (seg-sab 09-18, dom fechado) ───────────────
+    // migration 016 adicionou DEFAULT gen_random_uuid() em business_hours.id
     const defaultHours = [0, 1, 2, 3, 4, 5, 6].map((day) => ({
       store_id: storeId,
       day_of_week: day,
@@ -160,7 +160,6 @@ serve(async (req) => {
 
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro interno';
-    // Log seguro: não expor stack trace ao cliente
     console.error('[create-store] error:', message);
     return new Response(
       JSON.stringify({ error: message }),
