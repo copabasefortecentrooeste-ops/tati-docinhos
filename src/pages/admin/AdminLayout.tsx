@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, MapPin, Tag, Layers, Clock, Settings, LogOut, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, MapPin, Tag, Layers, Clock, Settings, LogOut, MessageCircle, MonitorPlay } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -33,6 +33,7 @@ function AdminLayoutInner() {
   const navItems = [
     { path: `/${slug}/admin`, icon: LayoutDashboard, label: 'Dashboard' },
     { path: `/${slug}/admin/pedidos`, icon: ShoppingBag, label: 'Pedidos' },
+    { path: `/${slug}/admin/pdv`, icon: MonitorPlay, label: 'PDV Balcão' },
     { path: `/${slug}/admin/produtos`, icon: Package, label: 'Produtos' },
     { path: `/${slug}/admin/categorias`, icon: Layers, label: 'Categorias' },
     { path: `/${slug}/admin/bairros`, icon: MapPin, label: 'Bairros' },

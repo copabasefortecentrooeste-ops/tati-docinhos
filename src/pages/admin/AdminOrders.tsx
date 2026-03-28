@@ -174,6 +174,18 @@ export default function AdminOrders() {
                       ⏰ Fora do horário
                     </span>
                   )}
+                  {order.origin && order.origin !== 'online' && (
+                    <span className={`rounded-button px-2 py-0.5 text-[10px] font-medium ${
+                      order.origin === 'balcao'          ? 'bg-blue-100 text-blue-700'   :
+                      order.origin === 'local'           ? 'bg-purple-100 text-purple-700' :
+                      order.origin === 'manual_delivery' ? 'bg-teal-100 text-teal-700'  :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {order.origin === 'balcao'          ? '🏪 Balcão'          :
+                       order.origin === 'local'           ? `🪑 Local${order.tableNumber ? ` • ${order.tableNumber}` : ''}` :
+                       order.origin === 'manual_delivery' ? '📦 Delivery Manual' : order.origin}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {order.customer.name} • {order.customer.phone}

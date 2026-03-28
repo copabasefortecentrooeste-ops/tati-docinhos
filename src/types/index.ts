@@ -103,9 +103,14 @@ export interface Order {
   outsideHours?: boolean;
   /** Client-generated idempotency key — prevents duplicate order submissions */
   requestId?: string;
+  /** Origin channel: online storefront, counter/pickup, local consumption, or manual delivery */
+  origin?: 'online' | 'balcao' | 'local' | 'manual_delivery';
+  /** Table/comanda number for local consumption orders */
+  tableNumber?: string;
   createdAt: string;
 }
 
+export type OrderOrigin = 'online' | 'balcao' | 'local' | 'manual_delivery';
 export type DeliveryMode = 'city_only' | 'free';
 
 export interface Customer {

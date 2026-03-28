@@ -26,6 +26,7 @@ import AdminHours from "./pages/admin/AdminHours";
 import AdminConfig from "./pages/admin/AdminConfig";
 import AdminWhatsApp from "./pages/admin/AdminWhatsApp";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminPDV from "./pages/admin/AdminPDV";
 import StoreLanding from "./pages/StoreLanding";
 import ShareableCatalog from "./pages/ShareableCatalog";
 import NotFound from "./pages/NotFound";
@@ -92,6 +93,7 @@ function AppInner() {
         <Route path="/:slug/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="pedidos" element={<AdminOrders />} />
+          <Route path="pdv" element={<AdminPDV />} />
           <Route path="produtos" element={<AdminProducts />} />
           <Route path="categorias" element={<AdminCategories />} />
           <Route path="bairros" element={<AdminNeighborhoods />} />

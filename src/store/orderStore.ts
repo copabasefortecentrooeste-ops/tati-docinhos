@@ -30,6 +30,8 @@ const fromDB = (r: Record<string, unknown>): Order => ({
   scheduledTime: r.scheduled_time as string | undefined,
   outsideHours: (r.outside_hours as boolean) ?? false,
   requestId: r.request_id as string | undefined,
+  origin: (r.origin as Order['origin']) ?? 'online',
+  tableNumber: r.table_number as string | undefined,
   createdAt: r.created_at as string,
 });
 
@@ -55,6 +57,8 @@ const toDB = (o: Order) => ({
   scheduled_time: o.scheduledTime ?? null,
   outside_hours: o.outsideHours ?? false,
   request_id: o.requestId ?? null,
+  origin: o.origin ?? 'online',
+  table_number: o.tableNumber ?? null,
   created_at: o.createdAt,
 });
 
