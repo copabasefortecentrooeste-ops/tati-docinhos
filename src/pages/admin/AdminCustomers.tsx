@@ -147,7 +147,9 @@ function DeleteConfirm({ customer, onClose, onDeleted }: DeleteProps) {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const { error } = await supabase.from('customers').delete().eq('id', customer.id);
+      // Use RPC that deletes customers row + auth.users (SECURITY DEFINER)
+      // so the email becomes available for new registration
+      const { error } = await supabase.rpc('admin_delete_customer', { p_id: customer.id });
       if (error) throw error;
       onDeleted();
       toast({ title: `Cliente ${customer.fullName} excluído` });

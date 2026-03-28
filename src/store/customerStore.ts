@@ -96,7 +96,13 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
   signUp: async (email, password, profile) => {
     try {
       const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) return { error: error.message };
+      if (error) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('already been registered')) {
+          return { error: 'Este email já está cadastrado. Use "Entrar" para acessar sua conta.' };
+        }
+        return { error: error.message };
+      }
       if (!data.user) return { error: 'Erro ao criar conta. Tente novamente.' };
 
       const customer: Customer = { id: data.user.id, email, ...profile };
