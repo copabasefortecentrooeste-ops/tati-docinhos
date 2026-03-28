@@ -70,6 +70,8 @@ interface OrderState {
   loadError: boolean;
   addOrder: (order: Order, storeId?: string) => Promise<void>;
   updateStatus: (id: string, status: Order['status']) => Promise<void>;
+  updateOrder: (id: string, updates: Partial<Pick<Order, 'customer' | 'paymentMethod' | 'discount' | 'total' | 'status' | 'tableNumber'>>) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
   getOrderByCode: (code: string) => Order | undefined;
   initFromDB: (storeId?: string) => Promise<void>;
   /**
@@ -194,6 +196,35 @@ export const useOrderStore = create<OrderState>()(
               orderCode: order.code,
             }).catch(console.warn);
           }
+        } catch (err) {
+          set({ orders: prevOrders });
+          throw err;
+        }
+      },
+
+      updateOrder: async (id, updates) => {
+        const prevOrders = get().orders;
+        set((s) => ({ orders: s.orders.map((o) => o.id === id ? { ...o, ...updates } : o) }));
+        try {
+          const dbUpdates: Record<string, unknown> = {};
+          if (updates.customer    !== undefined) dbUpdates.customer      = updates.customer;
+          if (updates.paymentMethod !== undefined) dbUpdates.payment_method = updates.paymentMethod;
+          if (updates.discount    !== undefined) dbUpdates.discount      = updates.discount;
+          if (updates.total       !== undefined) dbUpdates.total         = updates.total;
+          if (updates.status      !== undefined) dbUpdates.status        = updates.status;
+          if (updates.tableNumber !== undefined) dbUpdates.table_number  = updates.tableNumber;
+          await supabase.from('orders').update(dbUpdates).eq('id', id);
+        } catch (err) {
+          set({ orders: prevOrders });
+          throw err;
+        }
+      },
+
+      deleteOrder: async (id) => {
+        const prevOrders = get().orders;
+        set((s) => ({ orders: s.orders.filter((o) => o.id !== id) }));
+        try {
+          await supabase.from('orders').delete().eq('id', id);
         } catch (err) {
           set({ orders: prevOrders });
           throw err;
