@@ -37,6 +37,8 @@ interface CustomerState {
   customer: Customer | null;
   session: Session | null;
   loading: boolean;
+  /** true after the first loadProfile attempt completes (even if profile is null) */
+  profileLoaded: boolean;
   signUp: (
     email: string,
     password: string,
@@ -61,6 +63,7 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
   customer: null,
   session: null,
   loading: true,
+  profileLoaded: false,
 
   init: () => {
     // onAuthStateChange fires immediately with INITIAL_SESSION/SIGNED_IN on page load,
@@ -68,7 +71,7 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
     setTimeout(() => {
       // If onAuthStateChange hasn't fired within 3s, clear loading state
       const { loading } = get();
-      if (loading) set({ loading: false });
+      if (loading) set({ loading: false, profileLoaded: true });
     }, 3000);
 
     // Listen for auth changes (login / logout)
@@ -76,12 +79,12 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
     supabase.auth.onAuthStateChange((_event, session) => {
       set({ session, loading: false });
       if (!session) {
-        set({ customer: null });
+        set({ customer: null, profileLoaded: true });
       } else if (session.user) {
         const uid = session.user.id;
         setTimeout(async () => {
           const customer = await loadProfile(uid);
-          if (customer) set({ customer });
+          set({ customer: customer ?? null, profileLoaded: true });
         }, 0);
       }
     });
@@ -125,7 +128,7 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
 
       set({ session: data.session });
       const customer = await loadProfile(data.user.id);
-      if (customer) set({ customer });
+      set({ customer: customer ?? null, profileLoaded: true });
       return {};
     } catch {
       return { error: 'Erro ao fazer login. Tente novamente.' };

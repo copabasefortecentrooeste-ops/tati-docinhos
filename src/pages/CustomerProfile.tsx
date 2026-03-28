@@ -15,7 +15,7 @@ export default function CustomerProfile() {
   const navigate = useNavigate();
   const slug = useTenantSlug();
   const routes = tenantRoutes(slug);
-  const { customer, session, loading, signOut, updateProfile } = useCustomerStore();
+  const { customer, session, loading, profileLoaded, signOut, updateProfile } = useCustomerStore();
   const { config } = useStoreConfigStore();
   const deliveryMode = config.deliveryMode ?? 'city_only';
   const { orders } = useOrderStore();
@@ -52,8 +52,8 @@ export default function CustomerProfile() {
     }
   }, [customer]);
 
-  // Show spinner while loading OR while session exists but customer profile hasn't loaded yet
-  if (loading || (session && !customer)) {
+  // Show spinner while auth loads or while profile fetch is still in flight
+  if (loading || !profileLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
