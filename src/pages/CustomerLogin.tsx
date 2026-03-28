@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Phone, Mail } from 'lucide-react';
 import { useCustomerStore } from '@/store/customerStore';
 import { useStoreConfigStore } from '@/store/storeConfigStore';
 import { toast } from '@/hooks/use-toast';
@@ -9,6 +9,13 @@ import { useTenantSlug } from '@/hooks/useTenantSlug';
 import { tenantRoutes } from '@/lib/tenantRoutes';
 
 type Tab = 'login' | 'register';
+type LoginMode = 'email' | 'phone';
+
+/** Remove non-digits and validate Brazilian phone: 10 or 11 digits */
+function isValidBRPhone(value: string): boolean {
+  const digits = value.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 11;
+}
 
 export default function CustomerLogin() {
   const navigate = useNavigate();
@@ -17,7 +24,7 @@ export default function CustomerLogin() {
   const routes = tenantRoutes(slug);
   const returnTo = searchParams.get('returnTo') || routes.account;
 
-  const { signIn, signUp, session, customer, loading: authLoading } = useCustomerStore();
+  const { signIn, signUp, signInByPhone, session, customer, loading: authLoading } = useCustomerStore();
   const { config } = useStoreConfigStore();
   const deliveryMode = config.deliveryMode ?? 'city_only';
   const defaultCity = config.defaultCity ?? 'Pitangui';
@@ -25,17 +32,18 @@ export default function CustomerLogin() {
   const defaultCep = config.defaultCep ?? '35650-000';
 
   const [tab, setTab] = useState<Tab>('login');
+  const [loginMode, setLoginMode] = useState<LoginMode>('email');
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
 
   // Redirect as soon as session is confirmed — don't wait for customer profile
-  // (CustomerProfile already handles the loading flash independently)
   useEffect(() => {
     if (!authLoading && session) navigate(returnTo, { replace: true });
   }, [session, authLoading, navigate, returnTo]);
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
+  const [loginPhone, setLoginPhone] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
   // Register form
@@ -57,12 +65,25 @@ export default function CustomerLogin() {
     'w-full rounded-button border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';
 
   const handleLogin = async () => {
-    if (!loginEmail || !loginPassword) {
-      toast({ title: 'Preencha email e senha', variant: 'destructive' });
-      return;
+    if (loginMode === 'email') {
+      if (!loginEmail || !loginPassword) {
+        toast({ title: 'Preencha email e senha', variant: 'destructive' });
+        return;
+      }
+    } else {
+      if (!loginPhone || !loginPassword) {
+        toast({ title: 'Preencha telefone e senha', variant: 'destructive' });
+        return;
+      }
+      if (!isValidBRPhone(loginPhone)) {
+        toast({ title: 'Telefone inválido. Ex: 37998764672 (10 ou 11 dígitos)', variant: 'destructive' });
+        return;
+      }
     }
     setLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    const { error } = loginMode === 'email'
+      ? await signIn(loginEmail, loginPassword)
+      : await signInByPhone(loginPhone, loginPassword);
     setLoading(false);
     if (error) {
       toast({ title: error, variant: 'destructive' });
@@ -74,6 +95,10 @@ export default function CustomerLogin() {
   const handleRegister = async () => {
     if (!reg.fullName || !reg.email || !reg.phone || !reg.password || !reg.city || !reg.neighborhood || !reg.street || !reg.number) {
       toast({ title: 'Preencha todos os campos obrigatórios (*)', variant: 'destructive' });
+      return;
+    }
+    if (!isValidBRPhone(reg.phone)) {
+      toast({ title: 'Telefone inválido. Digite DDD + número (10 ou 11 dígitos). Ex: 37998764672', variant: 'destructive' });
       return;
     }
     if (deliveryMode === 'city_only' && reg.city.toLowerCase().trim() !== defaultCity.toLowerCase().trim()) {
@@ -135,13 +160,44 @@ export default function CustomerLogin() {
 
         {tab === 'login' ? (
           <div className="mt-6 space-y-4">
-            <input
-              type="email"
-              placeholder="Email"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              className={inputCls}
-            />
+            {/* Login mode toggle */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setLoginMode('email')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-button border py-2 text-xs font-medium transition-colors ${
+                  loginMode === 'email' ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <Mail size={13} /> Email
+              </button>
+              <button
+                onClick={() => setLoginMode('phone')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-button border py-2 text-xs font-medium transition-colors ${
+                  loginMode === 'phone' ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <Phone size={13} /> Telefone
+              </button>
+            </div>
+
+            {loginMode === 'email' ? (
+              <input
+                type="email"
+                placeholder="Email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className={inputCls}
+              />
+            ) : (
+              <input
+                type="tel"
+                placeholder="Telefone (ex: 37998764672)"
+                value={loginPhone}
+                onChange={(e) => setLoginPhone(e.target.value)}
+                className={inputCls}
+              />
+            )}
+
             <div className="relative">
               <input
                 type={showPwd ? 'text' : 'password'}
@@ -178,7 +234,12 @@ export default function CustomerLogin() {
             <p className="label-caps text-muted-foreground">Dados pessoais</p>
             <input type="text" placeholder="Nome completo *" value={reg.fullName} onChange={(e) => setReg((r) => ({ ...r, fullName: e.target.value }))} className={inputCls} />
             <input type="email" placeholder="Email *" value={reg.email} onChange={(e) => setReg((r) => ({ ...r, email: e.target.value }))} className={inputCls} />
-            <input type="tel" placeholder="Telefone/WhatsApp *" value={reg.phone} onChange={(e) => setReg((r) => ({ ...r, phone: e.target.value }))} className={inputCls} />
+            <div>
+              <input type="tel" placeholder="Telefone/WhatsApp * (ex: 37998764672)" value={reg.phone} onChange={(e) => setReg((r) => ({ ...r, phone: e.target.value }))} className={inputCls} />
+              {reg.phone && !isValidBRPhone(reg.phone) && (
+                <p className="mt-1 text-xs text-destructive">Número incompleto. Digite DDD + número (10 ou 11 dígitos)</p>
+              )}
+            </div>
             <div className="relative">
               <input
                 type={showPwd ? 'text' : 'password'}

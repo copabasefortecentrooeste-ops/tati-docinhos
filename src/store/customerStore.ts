@@ -45,6 +45,7 @@ interface CustomerState {
     profile: Omit<Customer, 'id' | 'email'>
   ) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signInByPhone: (phone: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Omit<Customer, 'id' | 'email'>>) => Promise<{ error?: string }>;
   init: () => void;
@@ -83,6 +84,8 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
       } else if (session.user) {
         const uid = session.user.id;
         setTimeout(async () => {
+          // If signUp/signIn already set the customer, don't overwrite with a stale fetch
+          if (get().customer) { set({ profileLoaded: true }); return; }
           const customer = await loadProfile(uid);
           set({ customer: customer ?? null, profileLoaded: true });
         }, 0);
@@ -114,7 +117,8 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
       });
       if (profileError) return { error: 'Conta criada, mas erro ao salvar perfil: ' + profileError.message };
 
-      set({ customer, session: data.session });
+      // Mark profileLoaded=true so CustomerProfile doesn't flash "Perfil não encontrado"
+      set({ customer, session: data.session, profileLoaded: true });
       return {};
     } catch {
       return { error: 'Erro inesperado. Tente novamente.' };
@@ -138,6 +142,20 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
       return {};
     } catch {
       return { error: 'Erro ao fazer login. Tente novamente.' };
+    }
+  },
+
+  signInByPhone: async (phone, password) => {
+    try {
+      // Lookup email by phone via SECURITY DEFINER RPC (bypasses RLS)
+      const { data: email, error: lookupError } = await supabase.rpc('get_email_by_phone', { p_phone: phone });
+      if (lookupError || !email) {
+        return { error: 'Telefone não encontrado. Verifique o número ou use seu email.' };
+      }
+      // Delegate to regular signIn with the resolved email
+      return get().signIn(email as string, password);
+    } catch {
+      return { error: 'Erro ao buscar conta pelo telefone. Tente novamente.' };
     }
   },
 
