@@ -28,11 +28,11 @@ export default function CustomerLogin() {
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
 
-  // Redirect if already logged in — wait for customer profile to load too,
-  // otherwise navigating while customer=null causes a "not logged in" flash loop
+  // Redirect as soon as session is confirmed — don't wait for customer profile
+  // (CustomerProfile already handles the loading flash independently)
   useEffect(() => {
-    if (!authLoading && session && customer) navigate(returnTo, { replace: true });
-  }, [session, customer, authLoading, navigate, returnTo]);
+    if (!authLoading && session) navigate(returnTo, { replace: true });
+  }, [session, authLoading, navigate, returnTo]);
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');

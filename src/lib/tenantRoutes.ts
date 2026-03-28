@@ -1,16 +1,21 @@
-/** Build tenant-prefixed routes for a given store slug. */
-export const tenantRoutes = (slug: string) => ({
-  home: `/${slug}`,
-  catalog: `/${slug}/catalogo`,
-  product: (id: string) => `/${slug}/produto/${id}`,
-  cart: `/${slug}/carrinho`,
-  checkout: `/${slug}/checkout`,
-  confirmation: (code: string) => `/${slug}/confirmacao/${code}`,
-  tracking: `/${slug}/acompanhar`,
-  login: (returnTo?: string) =>
-    returnTo
-      ? `/${slug}/login?returnTo=${encodeURIComponent(returnTo)}`
-      : `/${slug}/login`,
-  account: `/${slug}/conta`,
-  admin: `/${slug}/admin`,
-});
+/** Build tenant-prefixed routes for a given store slug.
+ *  When slug is empty (legacy global routes), falls back to absolute paths
+ *  without a prefix to avoid double-slash URLs like "//catalogo". */
+export const tenantRoutes = (slug: string) => {
+  const p = slug ? `/${slug}` : '';
+  return {
+    home: p || '/',
+    catalog: `${p}/catalogo`,
+    product: (id: string) => `${p}/produto/${id}`,
+    cart: `${p}/carrinho`,
+    checkout: `${p}/checkout`,
+    confirmation: (code: string) => `${p}/confirmacao/${code}`,
+    tracking: `${p}/acompanhar`,
+    login: (returnTo?: string) =>
+      returnTo
+        ? `${p}/login?returnTo=${encodeURIComponent(returnTo)}`
+        : `${p}/login`,
+    account: `${p}/conta`,
+    admin: `${p}/admin`,
+  };
+};
