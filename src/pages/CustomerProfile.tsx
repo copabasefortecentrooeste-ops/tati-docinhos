@@ -61,12 +61,25 @@ export default function CustomerProfile() {
     );
   }
 
-  if (!session || !customer) {
+  if (!session) {
     return (
       <div className="min-h-screen py-16 text-center">
         <p className="text-muted-foreground">Você não está logado.</p>
         <Link to={routes.login()} className="mt-4 inline-block text-primary hover:underline">
           Fazer login
+        </Link>
+      </div>
+    );
+  }
+
+  // Logged in but no customer profile — redirect to login to complete registration
+  if (!customer) {
+    return (
+      <div className="min-h-screen py-16 text-center">
+        <p className="text-muted-foreground">Perfil não encontrado.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Sua conta não possui um perfil de cliente. Por favor, cadastre-se.</p>
+        <Link to={routes.login()} className="mt-4 inline-block text-primary hover:underline">
+          Completar cadastro
         </Link>
       </div>
     );

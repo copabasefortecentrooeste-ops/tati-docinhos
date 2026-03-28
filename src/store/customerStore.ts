@@ -126,9 +126,15 @@ export const useCustomerStore = create<CustomerState>()((set, get) => ({
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { error: 'Email ou senha incorretos.' };
 
-      set({ session: data.session });
       const customer = await loadProfile(data.user.id);
-      set({ customer: customer ?? null, profileLoaded: true });
+      if (!customer) {
+        // Auth OK but no customer profile — sign out so session isn't left dangling
+        await supabase.auth.signOut();
+        set({ session: null, customer: null, profileLoaded: true });
+        return { error: 'Conta encontrada, mas sem perfil de cliente. Use "Criar Conta" para se cadastrar.' };
+      }
+
+      set({ session: data.session, customer, profileLoaded: true });
       return {};
     } catch {
       return { error: 'Erro ao fazer login. Tente novamente.' };
